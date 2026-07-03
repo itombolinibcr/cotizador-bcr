@@ -118,6 +118,9 @@
   .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:var(--white);padding:12px 20px;border-radius:var(--radius);font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.2);transform:translateY(80px);opacity:0;transition:all 0.3s;pointer-events:none;z-index:9999;}
   .toast.show{transform:translateY(0);opacity:1;}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip-utils.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.69.0/build/docxtemplater.js"></script>
 </head>
 <body>
 
@@ -155,7 +158,8 @@
         <div class="field"><label>Email</label><input type="email" id="email" placeholder="correo@dominio.com"></div>
         <div class="field"><label>Teléfono</label><input type="text" id="tel" placeholder="+54 341 ..."></div>
       </div>
-      <div class="field-grid spacer">
+      <div class="field-grid cols-2 spacer">
+        <div class="field"><label>Responsable de la cotización</label><input type="text" id="responsable" placeholder="Nombre y apellido (Eventos y Cultura)"></div>
         <div class="field"><label>Tipo de cliente</label>
           <select id="tipo_cliente" onchange="onTipoClienteChange()">
             <option value="">Seleccionar...</option>
@@ -323,7 +327,7 @@
         Generar Word / PDF
       </button>
     </div>
-    <div class="note info" style="margin-top:12px">ℹ El botón <strong>Generar Word / PDF</strong> se activará una vez conectado Power Automate. Por ahora usá <strong>Copiar texto</strong>.</div>
+    <div class="note info" style="margin-top:12px">ℹ El botón <strong>Generar Word</strong> descarga el documento ya completado, generado directamente en el navegador (no requiere Power Automate ni conexión a un servidor). Asegurate de que el archivo <code>plantilla_cotizacion.docx</code> esté publicado junto a este HTML.</div>
   </div>
 
 </main>
@@ -689,7 +693,139 @@ function copiarTexto() {
   navigator.clipboard.writeText(document.getElementById("preview-text").textContent)
     .then(() => showToast("✓ Texto copiado al portapapeles"));
 }
-function generarWord() { showToast("⏳ Conectar Power Automate para activar esta función"); }
+// ─── GENERAR WORD (client-side, sin backend) ──────────────────────────────────
+const PLANTILLA_DOCX_URL = "plantilla_cotizacion.docx"; // debe estar en la misma carpeta que este HTML
+
+function constructDatosPlantilla() {
+  const org        = document.getElementById("org").value           || "";
+  const contacto   = document.getElementById("contacto").value      || "";
+  const email      = document.getElementById("email").value         || "";
+  const tel        = document.getElementById("tel").value           || "";
+  const responsable= document.getElementById("responsable").value   || "";
+  const tipoCliente= document.getElementById("tipo_cliente").value  || "";
+  const fechaEmis  = fmtFecha(document.getElementById("fecha_emision").value);
+  const validez    = document.getElementById("validez")?.value      || "15 días corridos";
+  const nomEvento  = document.getElementById("nombre_evento").value || "";
+  const tipoEvento = document.getElementById("tipo_evento").value   || "";
+  const fechaIni   = document.getElementById("fecha_inicio").value;
+  const fechaFin   = document.getElementById("fecha_fin").value;
+  const dias       = calcularDias();
+  const fechaEv    = dias > 1
+    ? `${fmtFecha(fechaIni)} al ${fmtFecha(fechaFin)} (${dias} días)`
+    : fmtFecha(fechaIni);
+  const hIni       = document.getElementById("hora_inicio").value   || "";
+  const hFin       = document.getElementById("hora_fin").value      || "";
+  const horario    = hIni&&hFin ? `${hIni} a ${hFin} hs.` : "a confirmar";
+  const asistentes = document.getElementById("asistentes").value    || "a confirmar";
+  const armadoIni  = document.getElementById("armado_inicial").value|| "a definir";
+  const obsEvento  = document.getElementById("obs_evento").value    || "";
+  const conArmado  = document.getElementById("jornada_armado").checked;
+  const jLbl       = jornadaActual==="media" ? "Media jornada (hasta 4 horas)" : "Jornada completa (más de 4 horas)";
+  const tipoJornadaTxt = dias > 1 ? `${jLbl} × ${dias} días` : jLbl;
+  const moneda     = document.getElementById("moneda")?.value || "USD";
+  const obsEcon    = document.getElementById("obs_economicas")?.value || "";
+
+  const espaciosArr = [...espaciosSeleccionados].map(id => ESPACIOS.find(x=>x.id===id)).filter(Boolean);
+  const principal   = espaciosArr[0] || null;
+  const adicionalesEsp = espaciosArr.slice(1);
+
+  const items      = calcItems();
+  const totalEspacios = espaciosArr.reduce((acc,e) => acc + e.tar[jornadaActual]*dias, 0);
+  const armadoCost = conArmado && espaciosArr.length
+    ? Math.max(...espaciosArr.map(e=>e.tar.media))
+    : 0;
+  const adicManual = parseFloat(document.getElementById("adicionales")?.value) || 0;
+  const costoAdicionales = armadoCost + adicManual;
+  const subtotal   = totalEspacios + costoAdicionales;
+  const descAsoc   = esAsociado() ? subtotal*(DESC_ASOC/100) : 0;
+  const basePost   = subtotal - descAsoc;
+  const descExtra  = parseFloat(document.getElementById("descuento_extra")?.value)||0;
+  const descXtra   = basePost*(descExtra/100);
+  const total      = basePost - descXtra;
+
+  let descuentoTxt = [];
+  if (esAsociado()) descuentoTxt.push(`${DESC_ASOC}% Asociado BCR`);
+  if (descExtra > 0) descuentoTxt.push(`${descExtra}% adicional`);
+  descuentoTxt = descuentoTxt.length ? descuentoTxt.join(" + ") : "Sin descuento";
+
+  const infra = principal ? principal.infra.slice(0,6) : [];
+  while (infra.length < 6) infra.push("");
+
+  return {
+    fecha_emision: fechaEmis,
+    validez: validez,
+    organizacion: org,
+    tipo_cliente: tipoCliente || "No especificado",
+    contacto: contacto,
+    email: email,
+    telefono: tel,
+    nombre_evento: nomEvento,
+    tipo_evento: tipoEvento || "No especificado",
+    fecha_evento: fechaEv,
+    horario: horario,
+    asistentes: asistentes,
+    armado_inicial: armadoIni,
+    obs_evento: obsEvento || "Sin observaciones",
+    espacio_nombre: principal ? principal.nombre : "[Espacio no seleccionado]",
+    espacio_ubicacion: principal ? principal.ubicacion : "",
+    espacio_superficie: principal ? principal.sup : "",
+    espacio_capacidad: principal ? principal.cap : "",
+    tipo_jornada: tipoJornadaTxt,
+    espacios_adicionales: adicionalesEsp.length ? adicionalesEsp.map(e=>`${e.nombre} (USD ${fmt(e.tar[jornadaActual]*dias)})`).join(", ") : "Ninguno",
+    jornada_armado: conArmado ? "Sí, incluida (día previo, valor de media jornada)" : "No incluida",
+    espacio_descripcion: principal ? principal.desc : "",
+    infra_item_1: infra[0], infra_item_2: infra[1], infra_item_3: infra[2],
+    infra_item_4: infra[3], infra_item_5: infra[4], infra_item_6: infra[5],
+    costo_alquiler: `USD ${fmt(totalEspacios)}`,
+    costo_adicionales: `USD ${fmt(costoAdicionales)}`,
+    descuento: descuentoTxt,
+    total: `USD ${fmt(total)}`,
+    moneda: moneda,
+    obs_economicas: obsEcon || "Sin observaciones",
+    responsable: responsable || "[Responsable]"
+  };
+}
+
+function generarWord() {
+  if (espaciosSeleccionados.size === 0) {
+    showToast("⚠ Seleccioná al menos un espacio antes de generar el Word");
+    return;
+  }
+  if (typeof PizZipUtils === "undefined" || typeof docxtemplater === "undefined") {
+    showToast("⚠ No se pudieron cargar las librerías de generación. Revisá tu conexión.");
+    return;
+  }
+  showToast("⏳ Generando documento...");
+  PizZipUtils.getBinaryContent(PLANTILLA_DOCX_URL, function (error, content) {
+    if (error) {
+      showToast("✗ No se encontró plantilla_cotizacion.docx junto al HTML");
+      console.error(error);
+      return;
+    }
+    try {
+      const zip = new PizZip(content);
+      const doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+      doc.render(constructDatosPlantilla());
+      const out = doc.getZip().generate({
+        type: "blob",
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      });
+      const org = (document.getElementById("org").value || "cotizacion").replace(/[^a-z0-9]+/gi, "_");
+      const fecha = document.getElementById("fecha_emision").value || "";
+      const nombreArchivo = `Cotizacion_BCR_${org}_${fecha}.docx`;
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(out);
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("✓ Word generado y descargado");
+    } catch (e) {
+      console.error(e);
+      showToast("✗ Error al generar el Word. Revisá la consola (F12).");
+    }
+  });
+}
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("show");
