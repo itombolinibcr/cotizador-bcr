@@ -804,7 +804,11 @@ function generarWord() {
     }
     try {
       const zip = new PizZip(content);
-      const doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+      const doc = new docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+        delimiters: { start: "{{", end: "}}" }
+      });
       doc.render(constructDatosPlantilla());
       const out = doc.getZip().generate({
         type: "blob",
