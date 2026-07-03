@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotizador de Espacios — BCR Eventos y Cultura</title>
+<style>
+  :root {
+    --navy:#1F3864; --navy-light:#2E4F8A; --blue-pale:#EDF1F9; --blue-mid:#D9E2F3;
+    --gold:#C8A96E; --success:#1A7A4A; --success-bg:#EAF6EE;
+    --warn:#92580A; --warn-bg:#FEF3E2; --danger:#B91C1C; --danger-bg:#FEF2F2;
+    --text:#1A1A2E; --text-soft:#4A5568; --border:#C9D4E8; --bg:#F5F7FC; --white:#FFFFFF;
+    --radius:8px; --radius-lg:12px; --shadow:0 2px 12px rgba(31,56,100,0.08);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  .app-header{background:var(--navy);padding:14px 32px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 8px rgba(0,0,0,0.18);}
+  .logo-circle{width:44px;height:44px;background:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--navy);flex-shrink:0;}
+  .header-text h1{font-size:16px;font-weight:600;color:var(--white);}
+  .header-text p{font-size:12px;color:rgba(255,255,255,0.65);margin-top:1px;}
+
+  .stepper{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;display:flex;overflow-x:auto;}
+  .step-item{display:flex;align-items:center;gap:8px;padding:14px 16px;cursor:default;flex-shrink:0;border-bottom:3px solid transparent;transition:border-color 0.2s;}
+  .step-item.active{border-bottom-color:var(--navy);}
+  .step-item.done{border-bottom-color:var(--success);cursor:pointer;}
+  .step-bubble{width:24px;height:24px;border-radius:50%;background:var(--blue-mid);color:var(--navy);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;}
+  .step-item.active .step-bubble{background:var(--navy);color:var(--white);}
+  .step-item.done .step-bubble{background:var(--success);color:var(--white);}
+  .step-label{font-size:13px;color:var(--text-soft);font-weight:500;}
+  .step-item.active .step-label{color:var(--navy);font-weight:600;}
+  .step-item.done .step-label{color:var(--success);}
+
+  .main{max-width:820px;margin:32px auto;padding:0 20px 60px;}
+  .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;box-shadow:var(--shadow);}
+  .card-title{font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid var(--blue-mid);display:flex;align-items:center;gap:8px;}
+  .card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+
+  .field-grid{display:grid;gap:16px;}
+  .field-grid.cols-2{grid-template-columns:1fr 1fr;}
+  .field-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+  @media(max-width:560px){.field-grid.cols-2,.field-grid.cols-3{grid-template-columns:1fr;}}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:12px;font-weight:600;color:var(--text-soft);}
+  .field input,.field select,.field textarea{font-size:14px;font-family:inherit;border:1.5px solid var(--border);border-radius:var(--radius);padding:9px 12px;background:var(--white);color:var(--text);transition:border-color 0.15s,box-shadow 0.15s;width:100%;}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(31,56,100,0.1);}
+  .field textarea{resize:vertical;min-height:70px;}
+
+  .asociado-note{display:none;margin-top:10px;background:var(--success-bg);border:1px solid #A3D9B8;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--success);font-weight:500;}
+  .asociado-note.visible{display:block;}
+
+  /* SPACE GRID — multi-select */
+  .space-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:560px){.space-grid{grid-template-columns:1fr;}}
+  .space-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all 0.15s;background:var(--white);position:relative;}
+  .space-card:hover{border-color:var(--navy-light);background:var(--blue-pale);}
+  .space-card.active{border-color:var(--navy);background:var(--blue-pale);box-shadow:0 0 0 3px rgba(31,56,100,0.1);}
+  .space-card .sc-check{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:4px;border:2px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+  .space-card.active .sc-check{background:var(--navy);border-color:var(--navy);}
+  .space-card .sc-check svg{display:none;width:11px;height:11px;}
+  .space-card.active .sc-check svg{display:block;}
+  .space-card .sc-name{font-size:13px;font-weight:700;color:var(--navy);padding-right:24px;}
+  .space-card .sc-meta{font-size:11px;color:var(--text-soft);margin-top:3px;}
+  .space-card .sc-price{font-size:13px;font-weight:600;color:var(--gold);margin-top:8px;}
+  .space-card .sc-warn{font-size:11px;color:var(--danger);margin-top:3px;}
+  .multi-note{font-size:12px;color:var(--text-soft);margin-bottom:10px;padding:8px 12px;background:var(--blue-pale);border-radius:var(--radius);border:1px solid var(--border);}
+
+  .toggle-group{display:flex;gap:8px;}
+  .toggle-btn{flex:1;padding:10px 8px;text-align:center;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--white);color:var(--text-soft);cursor:pointer;font-size:13px;font-family:inherit;transition:all 0.15s;line-height:1.4;}
+  .toggle-btn:hover{border-color:var(--navy-light);}
+  .toggle-btn.active{border-color:var(--navy);background:var(--blue-pale);color:var(--navy);font-weight:600;box-shadow:0 0 0 3px rgba(31,56,100,0.1);}
+  .toggle-btn small{display:block;font-size:11px;opacity:0.7;margin-top:2px;font-weight:400;}
+
+  .check-list{display:flex;flex-direction:column;gap:10px;}
+  .check-item{display:flex;align-items:flex-start;gap:10px;cursor:pointer;}
+  .check-item input[type="checkbox"]{width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;}
+  .check-item .check-label{font-size:13px;color:var(--text);}
+  .check-item .check-sub{font-size:11px;color:var(--text-soft);margin-top:1px;}
+
+  .note{font-size:12px;padding:10px 14px;border-radius:var(--radius);margin-top:10px;}
+  .note.warn{background:var(--warn-bg);color:var(--warn);border:1px solid #F5C97A;}
+  .note.info{background:var(--blue-pale);color:var(--navy);border:1px solid var(--border);}
+  .note.success{background:var(--success-bg);color:var(--success);border:1px solid #A3D9B8;}
+  .note.danger{background:var(--danger-bg);color:var(--danger);border:1px solid #FECACA;}
+
+  .badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;margin-left:6px;}
+  .badge.opt{background:var(--warn-bg);color:var(--warn);}
+  .badge.auto{background:var(--success-bg);color:var(--success);}
+
+  .summary-table{width:100%;}
+  .summary-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--blue-mid);}
+  .summary-row:last-of-type{border-bottom:none;}
+  .summary-row .s-label{font-size:13px;color:var(--text-soft);}
+  .summary-row .s-value{font-size:13px;font-weight:600;color:var(--text);}
+  .summary-row.discount .s-value{color:var(--success);}
+  .summary-row.total-row{border-top:2px solid var(--navy);margin-top:6px;padding-top:12px;}
+  .summary-row.total-row .s-label{font-size:15px;font-weight:700;color:var(--navy);}
+  .summary-row.total-row .s-value{font-size:20px;font-weight:700;color:var(--navy);}
+
+  .preview-box{background:#FAFBFF;border:1px solid var(--border);border-radius:var(--radius);padding:20px;font-size:13px;line-height:1.75;white-space:pre-wrap;color:var(--text);max-height:480px;overflow-y:auto;font-family:'Segoe UI',system-ui,sans-serif;}
+
+  .btn-row{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:var(--radius);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;}
+  .btn-primary{background:var(--navy);color:var(--white);flex:1;justify-content:center;}
+  .btn-primary:hover{background:var(--navy-light);}
+  .btn-secondary{background:var(--blue-mid);color:var(--navy);flex:1;justify-content:center;}
+  .btn-secondary:hover{background:var(--border);}
+  .btn-success{background:var(--success);color:var(--white);flex:1;justify-content:center;}
+  .btn-success:hover{opacity:0.88;}
+  .btn-outline{background:transparent;color:var(--navy);border:1.5px solid var(--navy);flex:1;justify-content:center;}
+  .btn-outline:hover{background:var(--blue-pale);}
+  .btn svg{width:16px;height:16px;}
+
+  .spacer{margin-top:16px;}
+  .paso{display:none;}
+  .paso.active{display:block;}
+
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:var(--white);padding:12px 20px;border-radius:var(--radius);font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.2);transform:translateY(80px);opacity:0;transition:all 0.3s;pointer-events:none;z-index:9999;}
+  .toast.show{transform:translateY(0);opacity:1;}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip-utils.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.69.0/build/docxtemplater.js"></script>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo-circle">BCR</div>
+  <div class="header-text">
+    <h1>Cotizador de Espacios</h1>
+    <p>Área de Eventos y Cultura — Bolsa de Comercio de Rosario</p>
+  </div>
+</header>
+
+<nav class="stepper" id="stepper">
+  <div class="step-item active" data-step="1" onclick="goStep(1)"><div class="step-bubble">1</div><span class="step-label">Solicitante</span></div>
+  <div class="step-item" data-step="2" onclick="goStep(2)"><div class="step-bubble">2</div><span class="step-label">Evento</span></div>
+  <div class="step-item" data-step="3" onclick="goStep(3)"><div class="step-bubble">3</div><span class="step-label">Espacio</span></div>
+  <div class="step-item" data-step="4" onclick="goStep(4)"><div class="step-bubble">4</div><span class="step-label">Económico</span></div>
+  <div class="step-item" data-step="5" onclick="goStep(5)"><div class="step-bubble">5</div><span class="step-label">Cotización</span></div>
+</nav>
+
+<main class="main">
+
+  <!-- PASO 1 -->
+  <div class="paso active" id="paso-1">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Datos del solicitante</div>
+      <div class="field-grid cols-2">
+        <div class="field"><label>Fecha de emisión</label><input type="date" id="fecha_emision"></div>
+        <div class="field" style="visibility:hidden"><label>&nbsp;</label><input type="text" disabled></div>
+      </div>
+      <div class="field-grid cols-2 spacer">
+        <div class="field"><label>Organización / Empresa</label><input type="text" id="org" placeholder="Nombre de la institución"></div>
+        <div class="field"><label>Nombre del contacto</label><input type="text" id="contacto" placeholder="Nombre y apellido"></div>
+      </div>
+      <div class="field-grid cols-2 spacer">
+        <div class="field"><label>Email</label><input type="email" id="email" placeholder="correo@dominio.com"></div>
+        <div class="field"><label>Teléfono</label><input type="text" id="tel" placeholder="+54 341 ..."></div>
+      </div>
+      <div class="field-grid cols-2 spacer">
+        <div class="field"><label>Responsable de la cotización</label><input type="text" id="responsable" placeholder="Nombre y apellido (Eventos y Cultura)"></div>
+        <div class="field"><label>Tipo de cliente</label>
+          <select id="tipo_cliente" onchange="onTipoClienteChange()">
+            <option value="">Seleccionar...</option>
+            <option>Empresa / Corporativo</option>
+            <option>Institución pública</option>
+            <option>Entidad sin fines de lucro</option>
+            <option>Entidad participante / adherente</option>
+            <option value="Asociado BCR">Asociado BCR</option>
+            <option>Particular</option>
+            <option>Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="asociado-note" id="nota_asociado">✓ Se aplicará automáticamente un descuento del 25% sobre la tarifa total por tratarse de un Asociado BCR.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep(2)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div class="paso" id="paso-2">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Datos del evento</div>
+      <div class="field-grid">
+        <div class="field"><label>Nombre del evento</label><input type="text" id="nombre_evento" placeholder="Ej: Jornada de Capacitación Interna"></div>
+      </div>
+      <div class="field-grid spacer">
+        <div class="field"><label>Tipo de evento</label>
+          <select id="tipo_evento">
+            <option value="">Seleccionar...</option>
+            <option>Conferencia / Charla</option>
+            <option>Capacitación / Seminario</option>
+            <option>Congreso / Jornada</option>
+            <option>Presentación de producto</option>
+            <option>Exposición de arte</option>
+            <option>Cóctel / Networking</option>
+            <option>Asamblea / Reunión</option>
+            <option>Evento corporativo</option>
+            <option>Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-grid cols-3 spacer">
+        <div class="field"><label>Fecha de inicio</label><input type="date" id="fecha_inicio" onchange="onFechasChange()"></div>
+        <div class="field"><label>Fecha de fin</label><input type="date" id="fecha_fin" onchange="onFechasChange()"></div>
+        <div class="field"><label>Días de evento</label><input type="text" id="dias_evento_display" disabled placeholder="1 día"></div>
+      </div>
+      <div class="field-grid cols-2 spacer">
+        <div class="field"><label>Horario inicio</label><input type="time" id="hora_inicio"></div>
+        <div class="field"><label>Horario fin</label><input type="time" id="hora_fin"></div>
+      </div>
+      <div class="note info" id="multidia-note" style="display:none;margin-top:10px">ℹ Evento de varios días: el alquiler de cada espacio seleccionado se calculará multiplicando la tarifa de la jornada elegida por la cantidad de días del evento.</div>
+      <div class="field-grid cols-2 spacer">
+        <div class="field"><label>Asistentes estimados</label><input type="number" id="asistentes" placeholder="Ej: 150" min="1"></div>
+        <div class="field"><label>Armado inicial requerido</label>
+          <select id="armado_inicial">
+            <option value="">Seleccionar...</option>
+            <option>Platea / Auditorio</option>
+            <option>Escuela (mesas con sillas)</option>
+            <option>Cóctel (sin asientos)</option>
+            <option>Mesa directorio</option>
+            <option>U / Herradura</option>
+            <option>Libre / A definir</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-grid spacer">
+        <div class="field"><label>Necesidades especiales / observaciones</label><textarea id="obs_evento" placeholder="Ej: requiere traducción simultánea, streaming en vivo, etc."></textarea></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← Volver</button>
+      <button class="btn btn-primary"   onclick="goStep(3)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div class="paso" id="paso-3">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Selección de espacios</div>
+      <p class="multi-note">ℹ Podés seleccionar uno o varios espacios. Los seleccionados se incluirán en la cotización.</p>
+      <div class="space-grid" id="space-grid"></div>
+      <div id="cap-alert"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Tipo de jornada</div>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="btn-media"    onclick="cambiarJornada('media')">Media jornada<small>hasta 4 horas</small></button>
+        <button class="toggle-btn"        id="btn-completa" onclick="cambiarJornada('completa')">Jornada completa<small>más de 4 horas</small></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Jornada de montaje <span class="badge opt">Opcional</span></div>
+      <div class="check-list">
+        <label class="check-item">
+          <input type="checkbox" id="jornada_armado" onchange="recalcular()">
+          <span>
+            <span class="check-label">Jornada de armado (día previo al evento)</span>
+            <span class="check-sub">Se cotiza una sola vez, al valor de media jornada del espacio de mayor tarifa seleccionado</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">← Volver</button>
+      <button class="btn btn-primary"   onclick="goStep(4)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- PASO 4 -->
+  <div class="paso" id="paso-4">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Resumen económico</div>
+      <div class="summary-table" id="resumen-economico"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Ajustes y configuración</div>
+      <div class="field-grid cols-3">
+        <div class="field"><label>Descuento adicional (%)</label><input type="number" id="descuento_extra" min="0" max="100" value="0" oninput="recalcular()"></div>
+        <div class="field"><label>Adicionales (USD)</label><input type="number" id="adicionales" min="0" value="0" oninput="recalcular()"></div>
+        <div class="field"><label>Moneda de cobro</label>
+          <select id="moneda"><option value="USD">USD</option><option value="ARS">ARS (a tipo de cambio)</option></select>
+        </div>
+      </div>
+      <div class="field-grid spacer">
+        <div class="field"><label>Validez de la cotización</label>
+          <select id="validez">
+            <option>7 días corridos</option>
+            <option>15 días corridos</option>
+            <option>30 días corridos</option>
+            <option>A confirmar</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-grid spacer">
+        <div class="field"><label>Observaciones económicas / condiciones especiales</label><textarea id="obs_economicas" placeholder="Ej: precio especial aprobado, etc."></textarea></div>
+      </div>
+      <div class="note warn" style="margin-top:14px">⚠ Los precios surgen del tarifario 2026 (USD sin IVA). Verificar valores antes de enviar.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(3)">← Volver</button>
+      <button class="btn btn-primary"   onclick="goStep(5)">Generar cotización →</button>
+    </div>
+  </div>
+
+  <!-- PASO 5 -->
+  <div class="paso" id="paso-5">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Texto de cotización generado</div>
+      <div class="preview-box" id="preview-text"></div>
+    </div>
+    <div class="note warn">⚠ Revisá el texto antes de enviarlo al cliente. Verificá precios, datos del evento y del solicitante.</div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="goStep(4)">← Volver</button>
+      <button class="btn btn-outline"   onclick="copiarTexto()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copiar texto
+      </button>
+      <button class="btn btn-success" onclick="generarWord()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Generar Word / PDF
+      </button>
+    </div>
+    <div class="note info" style="margin-top:12px">ℹ El botón <strong>Generar Word</strong> descarga el documento ya completado, generado directamente en el navegador (no requiere Power Automate ni conexión a un servidor). Asegurate de que el archivo <code>plantilla_cotizacion.docx</code> esté publicado junto a este HTML.</div>
+  </div>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATOS ────────────────────────────────────────────────────────────────────
+const ESPACIOS = [
+  {
+    id:"auditorio", nombre:"Salón Auditorio",
+    sup:"228 m²", cap:"330 butacas", ubicacion:"Subsuelo, Edificio Torre", max:330,
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios, con rociadores automáticos",
+           "Circuito cerrado de video en pantallas independientes","Conectividad Wi-Fi","Dos salas de reunión con mesa directorio para 10 personas c/u",
+           "Cabina de traducción simultánea","Foyer de ingreso (160 m²)"],
+    desc:"Espacio de calidad y confort para múltiples eventos y presentaciones. Diseño versátil de fácil acceso que combina adaptabilidad y tecnología para el desarrollo de actividades.",
+    tar:{ media:1500, completa:2200 }
+  },
+  {
+    id:"foyer_auditorio", nombre:"Foyer del Auditorio",
+    sup:"160 m²", cap:"Sin capacidad fija (acreditación, cóctel, stands)", ubicacion:"Subsuelo, Edificio Torre", max:9999,
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios","Conectividad Wi-Fi","Acceso desde el Auditorio y desde el exterior"],
+    desc:"Amplio espacio de ingreso al Auditorio, ideal para desarrollar acciones complementarias: acreditación, cóctel, montaje de stands o exhibiciones gráficas.",
+    tar:{ media:700, completa:1100 }
+  },
+  {
+    id:"belgrano", nombre:"Salón Manuel Belgrano",
+    sup:"620 m²", cap:"700 platea / 900 cóctel / 350 escuela", ubicacion:"Primer piso, Edificio Torre", max:900,
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios, con rociadores automáticos",
+           "Luz natural regulada por persianas automáticas ubicadas en el techo","Piso técnico que facilita las conexiones de audio y proyección",
+           "Iluminación robotizada por sectores","Cabina de traducción simultánea","Conectividad Wi-Fi","Foyer de ingreso (350 m²)"],
+    desc:"Espacio adaptable y versátil con diversidad de montajes y dinámicas. Cuenta con acceso independiente. Su gran capacidad de m² permite desde presentaciones hasta congresos.",
+    tar:{ media:2000, completa:3200 }
+  },
+  {
+    id:"arte", nombre:"Espacio de Arte y Exposiciones Prof. M. Ballesteros",
+    sup:"270 m²", cap:"Sin capacidad fija (exposición / circulación)", ubicacion:"Planta baja, Edificio Torre", max:9999,
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios, con rociadores automáticos","Conectividad Wi-Fi","Acceso directo desde el exterior"],
+    desc:"Espacio dinámico y con acceso directo desde el exterior. Habilitado para exposiciones de arte o para complementar eventos que se desarrollen en las instalaciones. Su diseño permite una fluida circulación de asistentes.",
+    tar:{ media:1250, completa:2100 }
+  },
+  {
+    id:"sala4piso", nombre:"Sala 4° Piso Edificio Torre",
+    sup:"A completar", cap:"Mesa de trabajo para 16 personas", ubicacion:"Cuarto piso, Edificio Torre (Paraguay 777)", max:16,
+    infra:["Mesa de trabajo para 16 personas","Smart TV / cable HDMI / telefonía IP / Wi-Fi","Climatización frío/calor","Sistema de detección y extinción de incendios"],
+    desc:"Sala de reuniones equipada para encuentros de trabajo, directorios reducidos o reuniones híbridas.",
+    tar:{ media:300, completa:400 }
+  },
+  {
+    id:"circular", nombre:"Salón Circular",
+    sup:"A completar", cap:"A completar", ubicacion:"A completar", max:9999,
+    infra:["Dato pendiente de validación"],
+    desc:"Ficha técnica pendiente de confirmación.",
+    tar:{ media:750, completa:1200 },
+    pendiente:true
+  },
+  {
+    id:"mercurio", nombre:"Salón Restaurant Mercurio",
+    sup:"A completar", cap:"150 personas (auditorio) / 80 (escuela) / 120 (mesas redondas)", ubicacion:"Subsuelo, Edificio Institucional (Corrientes 796)", max:150,
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios"],
+    desc:"Salón versátil para eventos gastronómicos, presentaciones y reuniones de mediano formato.",
+    tar:{ media:1450, completa:2000 }
+  },
+  {
+    id:"capacitacion", nombre:"Sala 1 de Capacitación",
+    sup:"A completar", cap:"50 bancos de trabajo", ubicacion:"Primer piso, Edificio Institucional (Córdoba 1402)", max:50,
+    infra:["Pantalla touch screen de 85\"","Sistema de videoconferencia para reuniones híbridas","Sonido integral","Climatización integral frío/calor","Sistema de detección y extinción de incendios"],
+    desc:"Sala de capacitación equipada con pantalla táctil interactiva de 85\". Diseñada para talleres, cursos y capacitaciones con configuración en bancos.",
+    tar:{ media:550, completa:900 }
+  },
+  {
+    id:"estudio", nombre:"Estudio Audiovisual +BCR",
+    sup:"Estudio 40 m² · Isla de edición 10 m² · Sala de reuniones 24 m²", cap:"Producción audiovisual (no aplica capacidad de público)", ubicacion:"Edificio Torre", max:9999,
+    infra:["Dos cámaras robóticas PTZ AVMatrix operadas a distancia","Cámara Sony NXCAM profesional (grabación AVCHD Progressive)",
+           "Trípodes profesionales con cabezales fluidos","Configuraciones multicámara para transmisiones en vivo o grabaciones",
+           "Micrófonos de estudio tipo broadcast con conexiones balanceadas","Sistema de luces LED de estudio, suspendidas y direccionables",
+           "Operación técnica, realización y edición exclusivamente a través del proveedor audiovisual de la BCR"],
+    desc:"Estudio audiovisual diseñado para la realización de contenidos institucionales, entrevistas, transmisiones en vivo y producciones audiovisuales de calidad profesional.",
+    tar:{ media:550, completa:1000 }
+  },
+  {
+    id:"recinto", nombre:"Recinto de Operaciones",
+    sup:"A completar", cap:"A completar", ubicacion:"A completar", max:9999,
+    infra:["Características técnicas en proceso de actualización"],
+    desc:"Espacio incorporado al tarifario 2026. Ficha técnica y características pendientes de definición final.",
+    tar:{ media:1500, completa:2200 },
+    pendiente:true
+  },
+];
+
+const DESC_ASOC = 25;
+
+// ─── ESTADO ──────────────────────────────────────────────────────────────────
+let espaciosSeleccionados = new Set(); // multi-select
+let jornadaActual = "media";
+
+// ─── FECHAS / DÍAS DE EVENTO ───────────────────────────────────────────────────
+function calcularDias() {
+  const ini = document.getElementById("fecha_inicio")?.value;
+  const fin = document.getElementById("fecha_fin")?.value;
+  if (!ini) return 1;
+  if (!fin || fin < ini) return 1;
+  const dIni = new Date(ini + "T00:00:00");
+  const dFin = new Date(fin + "T00:00:00");
+  const diffMs = dFin - dIni;
+  const dias = Math.round(diffMs / (1000*60*60*24)) + 1;
+  return dias > 0 ? dias : 1;
+}
+
+function onFechasChange() {
+  const ini = document.getElementById("fecha_inicio").value;
+  const finEl = document.getElementById("fecha_fin");
+  if (ini && !finEl.value) finEl.value = ini; // por defecto, evento de un día
+  if (ini && finEl.value < ini) finEl.value = ini;
+  const dias = calcularDias();
+  document.getElementById("dias_evento_display").value = dias === 1 ? "1 día" : `${dias} días`;
+  document.getElementById("multidia-note").style.display = dias > 1 ? "block" : "none";
+  buildSpaceGrid();
+  recalcular();
+}
+
+// ─── STEPPER ─────────────────────────────────────────────────────────────────
+function goStep(n) {
+  document.querySelectorAll(".paso").forEach(p => p.classList.remove("active"));
+  document.getElementById("paso-" + n).classList.add("active");
+  document.querySelectorAll(".step-item").forEach(s => {
+    const sn = parseInt(s.dataset.step);
+    s.classList.remove("active","done");
+    if (sn === n) s.classList.add("active");
+    else if (sn < n) s.classList.add("done");
+  });
+  window.scrollTo({ top:0, behavior:"smooth" });
+  if (n===3) buildSpaceGrid();
+  if (n===4) recalcular();
+  if (n===5) generarTexto();
+}
+
+// ─── TIPO CLIENTE ─────────────────────────────────────────────────────────────
+function onTipoClienteChange() {
+  document.getElementById("nota_asociado").classList.toggle("visible", esAsociado());
+  recalcular();
+}
+function esAsociado() { return document.getElementById("tipo_cliente").value === "Asociado BCR"; }
+
+// ─── SPACE GRID (multi-select) ────────────────────────────────────────────────
+function buildSpaceGrid() {
+  const asistentes = parseInt(document.getElementById("asistentes").value) || 0;
+  const dias = calcularDias();
+  const grid = document.getElementById("space-grid");
+  grid.innerHTML = "";
+  ESPACIOS.forEach(e => {
+    const superado = asistentes > 0 && asistentes > e.max;
+    const activo   = espaciosSeleccionados.has(e.id);
+    const precioTotal = e.tar[jornadaActual] * dias;
+    const div = document.createElement("div");
+    div.className = "space-card" + (activo ? " active" : "");
+    div.innerHTML =
+      `<div class="sc-check"><svg viewBox="0 0 12 10" fill="none" stroke="white" stroke-width="2.5"><polyline points="1,5 4.5,9 11,1"/></svg></div>
+       <div class="sc-name">${e.nombre}</div>
+       <div class="sc-meta">${e.sup} · ${e.cap}</div>
+       ${superado ? `<div class="sc-warn">⚠ Capacidad excedida (máx. ${e.max})</div>` : ""}
+       ${e.pendiente ? `<div class="sc-warn">⚠ Ficha técnica pendiente de validación</div>` : ""}
+       <div class="sc-price">Alquiler USD ${e.tar[jornadaActual].toLocaleString("es-AR")}${dias>1 ? ` × ${dias} días = USD ${precioTotal.toLocaleString("es-AR")}` : ""}</div>`;
+    div.onclick = () => {
+      if (espaciosSeleccionados.has(e.id)) espaciosSeleccionados.delete(e.id);
+      else espaciosSeleccionados.add(e.id);
+      buildSpaceGrid(); recalcular();
+    };
+    grid.appendChild(div);
+  });
+  // alerta capacidad
+  const alert = document.getElementById("cap-alert");
+  const superados = [...espaciosSeleccionados].filter(id => {
+    const e = ESPACIOS.find(x => x.id===id);
+    return e && asistentes > 0 && asistentes > e.max;
+  });
+  alert.innerHTML = superados.length
+    ? `<div class="note danger" style="margin-top:10px">⚠ Los asistentes superan la capacidad de: ${superados.map(id=>ESPACIOS.find(x=>x.id===id).nombre).join(", ")}.</div>`
+    : "";
+}
+
+// ─── JORNADA ─────────────────────────────────────────────────────────────────
+function cambiarJornada(tipo) {
+  jornadaActual = tipo;
+  document.getElementById("btn-media").classList.toggle("active", tipo==="media");
+  document.getElementById("btn-completa").classList.toggle("active", tipo==="completa");
+  buildSpaceGrid(); recalcular();
+}
+
+// ─── CÁLCULO ─────────────────────────────────────────────────────────────────
+function calcItems() {
+  const items = [];
+  const jLbl  = jornadaActual==="media" ? "Media jornada" : "Jornada completa";
+  const conArmado = document.getElementById("jornada_armado").checked;
+  const dias = calcularDias();
+
+  espaciosSeleccionados.forEach(id => {
+    const e = ESPACIOS.find(x => x.id===id);
+    if (!e) return;
+    const totalEspacio = e.tar[jornadaActual] * dias;
+    const label = dias > 1
+      ? `${e.nombre} — ${jLbl} × ${dias} días`
+      : `${e.nombre} — ${jLbl}`;
+    items.push({ label, val: totalEspacio });
+  });
+
+  // Armado: una sola vez (un día previo), al valor de media jornada del espacio de mayor tarifa
+  if (conArmado && espaciosSeleccionados.size > 0) {
+    const maxEsp = [...espaciosSeleccionados]
+      .map(id => ESPACIOS.find(x => x.id===id))
+      .filter(Boolean)
+      .reduce((a,b) => b.tar.media > a.tar.media ? b : a);
+    items.push({ label:`Jornada de armado (ref. ${maxEsp.nombre})`, val: maxEsp.tar.media });
+  }
+
+  const adic = parseFloat(document.getElementById("adicionales")?.value) || 0;
+  if (adic > 0) items.push({ label:"Adicionales", val: adic });
+  return items;
+}
+
+function recalcular() {
+  const items    = calcItems();
+  const subtotal = items.reduce((a,i) => a+i.val, 0);
+  const descAsoc = esAsociado() ? subtotal*(DESC_ASOC/100) : 0;
+  const basePost = subtotal - descAsoc;
+  const descExtra= parseFloat(document.getElementById("descuento_extra")?.value) || 0;
+  const descXtra = basePost*(descExtra/100);
+  const total    = basePost - descXtra;
+
+  const cont = document.getElementById("resumen-economico");
+  if (!cont) return;
+  let html = "";
+  if (items.length === 0) {
+    html = `<p style="font-size:13px;color:var(--text-soft);padding:8px 0">Seleccioná al menos un espacio para ver el resumen.</p>`;
+  } else {
+    items.forEach(i => {
+      html += `<div class="summary-row"><span class="s-label">${i.label}</span><span class="s-value">USD ${fmt(i.val)}</span></div>`;
+    });
+    if (esAsociado())
+      html += `<div class="summary-row discount"><span class="s-label">Descuento Asociado BCR (${DESC_ASOC}%) <span class="badge auto">Automático</span></span><span class="s-value">− USD ${fmt(descAsoc)}</span></div>`;
+    if (descExtra > 0)
+      html += `<div class="summary-row discount"><span class="s-label">Descuento adicional (${descExtra}%)</span><span class="s-value">− USD ${fmt(descXtra)}</span></div>`;
+    html += `<div class="summary-row total-row"><span class="s-label">Total estimado</span><span class="s-value">USD ${fmt(total)}</span></div>`;
+    html += `<p style="font-size:11px;color:#888;margin-top:8px">Valores en USD sin IVA · Tarifario 2026 · Sujeto a confirmación</p>`;
+  }
+  cont.innerHTML = html;
+}
+
+function fmt(n) { return n.toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+// ─── GENERAR TEXTO ────────────────────────────────────────────────────────────
+function fmtFecha(val) {
+  if (!val) return "a confirmar";
+  const [y,m,d] = val.split("-");
+  const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  return `${parseInt(d)} de ${meses[parseInt(m)-1]} de ${y}`;
+}
+
+function generarTexto() {
+  const org        = document.getElementById("org").value           || "[Organización]";
+  const contacto   = document.getElementById("contacto").value      || "[Contacto]";
+  const email      = document.getElementById("email").value         || "[Email]";
+  const tel        = document.getElementById("tel").value           || "[Teléfono]";
+  const tipoCliente= document.getElementById("tipo_cliente").value  || "";
+  const fechaEmis  = fmtFecha(document.getElementById("fecha_emision").value);
+  const validez    = document.getElementById("validez")?.value      || "15 días corridos";
+  const nomEvento  = document.getElementById("nombre_evento").value || "[Nombre del evento]";
+  const tipoEvento = document.getElementById("tipo_evento").value   || "";
+  const fechaIni   = document.getElementById("fecha_inicio").value;
+  const fechaFin   = document.getElementById("fecha_fin").value;
+  const dias       = calcularDias();
+  const fechaEv    = dias > 1
+    ? `${fmtFecha(fechaIni)} al ${fmtFecha(fechaFin)} (${dias} días)`
+    : fmtFecha(fechaIni);
+  const hIni       = document.getElementById("hora_inicio").value   || "";
+  const hFin       = document.getElementById("hora_fin").value      || "";
+  const horario    = hIni&&hFin ? `${hIni} a ${hFin} hs.` : "a confirmar";
+  const asistentes = document.getElementById("asistentes").value    || "a confirmar";
+  const armadoIni  = document.getElementById("armado_inicial").value|| "a definir";
+  const obsEvento  = document.getElementById("obs_evento").value    || "";
+  const jLbl       = jornadaActual==="media" ? "Media jornada (hasta 4 horas)" : "Jornada completa (más de 4 horas)";
+  const conArmado  = document.getElementById("jornada_armado").checked;
+  const items      = calcItems();
+  const subtotal   = items.reduce((a,i)=>a+i.val,0);
+  const descAsoc   = esAsociado() ? subtotal*(DESC_ASOC/100) : 0;
+  const basePost   = subtotal - descAsoc;
+  const descExtra  = parseFloat(document.getElementById("descuento_extra")?.value)||0;
+  const descXtra   = basePost*(descExtra/100);
+  const total      = basePost - descXtra;
+  const moneda     = document.getElementById("moneda")?.value || "USD";
+  const obsEcon    = document.getElementById("obs_economicas")?.value || "";
+
+  const espaciosArr = [...espaciosSeleccionados].map(id => ESPACIOS.find(x=>x.id===id)).filter(Boolean);
+
+  let t = "";
+  t += `COTIZACIÓN DE ALQUILER DE ESPACIOS\n`;
+  t += `Bolsa de Comercio de Rosario — Área de Eventos y Cultura\n`;
+  t += `${"─".repeat(60)}\n\n`;
+  t += `Fecha de emisión: ${fechaEmis}\n`;
+  t += `Validez: ${validez} desde la fecha de emisión\n\n`;
+
+  t += `DATOS DEL SOLICITANTE\n${"─".repeat(40)}\n`;
+  t += `Organización: ${org}\n`;
+  if (tipoCliente) t += `Tipo de cliente: ${tipoCliente}\n`;
+  t += `Contacto: ${contacto}\n`;
+  t += `Email: ${email}\n`;
+  t += `Teléfono: ${tel}\n\n`;
+
+  t += `DATOS DEL EVENTO\n${"─".repeat(40)}\n`;
+  t += `Evento: ${nomEvento}\n`;
+  if (tipoEvento) t += `Tipo: ${tipoEvento}\n`;
+  t += `Fecha: ${fechaEv}\n`;
+  t += `Horario: ${horario}\n`;
+  t += `Asistentes estimados: ${asistentes}\n`;
+  t += `Armado inicial: ${armadoIni}\n`;
+  if (obsEvento) t += `Observaciones: ${obsEvento}\n`;
+  t += `\n`;
+
+  if (espaciosArr.length > 0) {
+    t += `ESPACIO(S) COTIZADO(S)\n${"─".repeat(40)}\n`;
+    espaciosArr.forEach((e, idx) => {
+      if (idx > 0) t += `\n${"· ".repeat(20)}\n\n`;
+      t += `${e.nombre}\n`;
+      t += `Ubicación: ${e.ubicacion}\n`;
+      t += `Superficie: ${e.sup} · Capacidad: ${e.cap}\n`;
+      t += `${e.desc}\n\n`;
+      t += `Infraestructura y servicios incluidos:\n`;
+      e.infra.forEach(i => { t += `  • ${i}\n`; });
+      if (e.pendiente) t += `  ⚠ Ficha técnica en proceso de actualización — validar características antes de confirmar la cotización.\n`;
+    });
+    if (conArmado) t += `\nJornada de armado (día previo al evento) — incluida en la cotización, al valor de media jornada de cada espacio.\n`;
+    t += `\n`;
+  }
+
+  t += `PRESUPUESTO\n${"─".repeat(40)}\n`;
+  items.forEach(i => { t += `${i.label}: USD ${fmt(i.val)}\n`; });
+  if (esAsociado()) t += `Descuento Asociado BCR (${DESC_ASOC}%): − USD ${fmt(descAsoc)}\n`;
+  if (descExtra > 0) t += `Descuento adicional (${descExtra}%): − USD ${fmt(descXtra)}\n`;
+  t += `\nTOTAL: USD ${fmt(total)} (sin IVA)\n`;
+  t += `Moneda de referencia: ${moneda}\n`;
+  if (obsEcon) t += `\nObservaciones económicas: ${obsEcon}\n`;
+  t += `\n`;
+
+  t += `CONDICIONES COMERCIALES\n${"─".repeat(40)}\n`;
+  t += `• Seña del 30% al momento de confirmar la reserva.\n`;
+  t += `• El 70% restante debe abonarse hasta 72 horas antes del evento.\n`;
+  t += `• Formas de pago: e-cheq o transferencia bancaria (pesos o dólares).\n`;
+  t += `• Los precios se expresan en USD. La facturación se emite en pesos tomando\n  el dólar oficial (Banco Nación) vigente al momento de facturar.\n`;
+  t += `• La jornada de armado se cotiza al valor de media jornada de cada espacio.\n`;
+  t += `• Disponibilidad sujeta a confirmación al momento de la reserva.\n`;
+  t += `• Precios sin IVA. Tarifario vigente 2026.\n`;
+  t += `• Validez: ${validez} desde la fecha de emisión.\n\n`;
+
+  t += `${"─".repeat(60)}\n`;
+  t += `Bolsa de Comercio de Rosario — Área de Eventos y Cultura\n`;
+  t += `institucional@bcr.com.ar · (54 341) 525 8300 | 410 2600\n`;
+  t += `www.bcr.com.ar`;
+
+  document.getElementById("preview-text").textContent = t;
+}
+
+// ─── ACCIONES ────────────────────────────────────────────────────────────────
+function copiarTexto() {
+  navigator.clipboard.writeText(document.getElementById("preview-text").textContent)
+    .then(() => showToast("✓ Texto copiado al portapapeles"));
+}
+// ─── GENERAR WORD (client-side, sin backend) ──────────────────────────────────
+const PLANTILLA_DOCX_URL = "plantilla_cotizacion.docx"; // debe estar en la misma carpeta que este HTML
+
+function constructDatosPlantilla() {
+  const org        = document.getElementById("org").value           || "";
+  const contacto   = document.getElementById("contacto").value      || "";
+  const email      = document.getElementById("email").value         || "";
+  const tel        = document.getElementById("tel").value           || "";
+  const responsable= document.getElementById("responsable").value   || "";
+  const tipoCliente= document.getElementById("tipo_cliente").value  || "";
+  const fechaEmis  = fmtFecha(document.getElementById("fecha_emision").value);
+  const validez    = document.getElementById("validez")?.value      || "15 días corridos";
+  const nomEvento  = document.getElementById("nombre_evento").value || "";
+  const tipoEvento = document.getElementById("tipo_evento").value   || "";
+  const fechaIni   = document.getElementById("fecha_inicio").value;
+  const fechaFin   = document.getElementById("fecha_fin").value;
+  const dias       = calcularDias();
+  const fechaEv    = dias > 1
+    ? `${fmtFecha(fechaIni)} al ${fmtFecha(fechaFin)} (${dias} días)`
+    : fmtFecha(fechaIni);
+  const hIni       = document.getElementById("hora_inicio").value   || "";
+  const hFin       = document.getElementById("hora_fin").value      || "";
+  const horario    = hIni&&hFin ? `${hIni} a ${hFin} hs.` : "a confirmar";
+  const asistentes = document.getElementById("asistentes").value    || "a confirmar";
+  const armadoIni  = document.getElementById("armado_inicial").value|| "a definir";
+  const obsEvento  = document.getElementById("obs_evento").value    || "";
+  const conArmado  = document.getElementById("jornada_armado").checked;
+  const jLbl       = jornadaActual==="media" ? "Media jornada (hasta 4 horas)" : "Jornada completa (más de 4 horas)";
+  const tipoJornadaTxt = dias > 1 ? `${jLbl} × ${dias} días` : jLbl;
+  const moneda     = document.getElementById("moneda")?.value || "USD";
+  const obsEcon    = document.getElementById("obs_economicas")?.value || "";
+
+  const espaciosArr = [...espaciosSeleccionados].map(id => ESPACIOS.find(x=>x.id===id)).filter(Boolean);
+  const principal   = espaciosArr[0] || null;
+  const adicionalesEsp = espaciosArr.slice(1);
+
+  const items      = calcItems();
+  const totalEspacios = espaciosArr.reduce((acc,e) => acc + e.tar[jornadaActual]*dias, 0);
+  const armadoCost = conArmado && espaciosArr.length
+    ? Math.max(...espaciosArr.map(e=>e.tar.media))
+    : 0;
+  const adicManual = parseFloat(document.getElementById("adicionales")?.value) || 0;
+  const costoAdicionales = armadoCost + adicManual;
+  const subtotal   = totalEspacios + costoAdicionales;
+  const descAsoc   = esAsociado() ? subtotal*(DESC_ASOC/100) : 0;
+  const basePost   = subtotal - descAsoc;
+  const descExtra  = parseFloat(document.getElementById("descuento_extra")?.value)||0;
+  const descXtra   = basePost*(descExtra/100);
+  const total      = basePost - descXtra;
+
+  let descuentoTxt = [];
+  if (esAsociado()) descuentoTxt.push(`${DESC_ASOC}% Asociado BCR`);
+  if (descExtra > 0) descuentoTxt.push(`${descExtra}% adicional`);
+  descuentoTxt = descuentoTxt.length ? descuentoTxt.join(" + ") : "Sin descuento";
+
+  const infra = principal ? principal.infra.slice(0,6) : [];
+  while (infra.length < 6) infra.push("");
+
+  return {
+    fecha_emision: fechaEmis,
+    validez: validez,
+    organizacion: org,
+    tipo_cliente: tipoCliente || "No especificado",
+    contacto: contacto,
+    email: email,
+    telefono: tel,
+    nombre_evento: nomEvento,
+    tipo_evento: tipoEvento || "No especificado",
+    fecha_evento: fechaEv,
+    horario: horario,
+    asistentes: asistentes,
+    armado_inicial: armadoIni,
+    obs_evento: obsEvento || "Sin observaciones",
+    espacio_nombre: principal ? principal.nombre : "[Espacio no seleccionado]",
+    espacio_ubicacion: principal ? principal.ubicacion : "",
+    espacio_superficie: principal ? principal.sup : "",
+    espacio_capacidad: principal ? principal.cap : "",
+    tipo_jornada: tipoJornadaTxt,
+    espacios_adicionales: adicionalesEsp.length ? adicionalesEsp.map(e=>`${e.nombre} (USD ${fmt(e.tar[jornadaActual]*dias)})`).join(", ") : "Ninguno",
+    jornada_armado: conArmado ? "Sí, incluida (día previo, valor de media jornada)" : "No incluida",
+    espacio_descripcion: principal ? principal.desc : "",
+    infra_item_1: infra[0], infra_item_2: infra[1], infra_item_3: infra[2],
+    infra_item_4: infra[3], infra_item_5: infra[4], infra_item_6: infra[5],
+    costo_alquiler: `USD ${fmt(totalEspacios)}`,
+    costo_adicionales: `USD ${fmt(costoAdicionales)}`,
+    descuento: descuentoTxt,
+    total: `USD ${fmt(total)}`,
+    moneda: moneda,
+    obs_economicas: obsEcon || "Sin observaciones",
+    responsable: responsable || "[Responsable]"
+  };
+}
+
+function generarWord() {
+  if (espaciosSeleccionados.size === 0) {
+    showToast("⚠ Seleccioná al menos un espacio antes de generar el Word");
+    return;
+  }
+  if (typeof PizZipUtils === "undefined" || typeof docxtemplater === "undefined") {
+    showToast("⚠ No se pudieron cargar las librerías de generación. Revisá tu conexión.");
+    return;
+  }
+  showToast("⏳ Generando documento...");
+  PizZipUtils.getBinaryContent(PLANTILLA_DOCX_URL, function (error, content) {
+    if (error) {
+      showToast("✗ No se encontró plantilla_cotizacion.docx junto al HTML");
+      console.error(error);
+      return;
+    }
+    try {
+      const zip = new PizZip(content);
+      const doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+      doc.render(constructDatosPlantilla());
+      const out = doc.getZip().generate({
+        type: "blob",
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      });
+      const org = (document.getElementById("org").value || "cotizacion").replace(/[^a-z0-9]+/gi, "_");
+      const fecha = document.getElementById("fecha_emision").value || "";
+      const nombreArchivo = `Cotizacion_BCR_${org}_${fecha}.docx`;
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(out);
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("✓ Word generado y descargado");
+    } catch (e) {
+      console.error(e);
+      showToast("✗ Error al generar el Word. Revisá la consola (F12).");
+    }
+  });
+}
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(function init() {
+  const hoy = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  document.getElementById("fecha_emision").value =
+    `${hoy.getFullYear()}-${pad(hoy.getMonth()+1)}-${pad(hoy.getDate())}`;
+})();
+</script>
+</body>
+</html>
