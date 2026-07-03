@@ -200,10 +200,15 @@
         </div>
       </div>
       <div class="field-grid cols-3 spacer">
-        <div class="field"><label>Fecha del evento</label><input type="date" id="fecha_evento"></div>
+        <div class="field"><label>Fecha de inicio</label><input type="date" id="fecha_inicio" onchange="onFechasChange()"></div>
+        <div class="field"><label>Fecha de fin</label><input type="date" id="fecha_fin" onchange="onFechasChange()"></div>
+        <div class="field"><label>Días de evento</label><input type="text" id="dias_evento_display" disabled placeholder="1 día"></div>
+      </div>
+      <div class="field-grid cols-2 spacer">
         <div class="field"><label>Horario inicio</label><input type="time" id="hora_inicio"></div>
         <div class="field"><label>Horario fin</label><input type="time" id="hora_fin"></div>
       </div>
+      <div class="note info" id="multidia-note" style="display:none;margin-top:10px">ℹ Evento de varios días: el alquiler de cada espacio seleccionado se calculará multiplicando la tarifa de la jornada elegida por la cantidad de días del evento.</div>
       <div class="field-grid cols-2 spacer">
         <div class="field"><label>Asistentes estimados</label><input type="number" id="asistentes" placeholder="Ej: 150" min="1"></div>
         <div class="field"><label>Armado inicial requerido</label>
@@ -292,7 +297,7 @@
       <div class="field-grid spacer">
         <div class="field"><label>Observaciones económicas / condiciones especiales</label><textarea id="obs_economicas" placeholder="Ej: precio especial aprobado, etc."></textarea></div>
       </div>
-      <div class="note warn" style="margin-top:14px">⚠ Los precios surgen del tarifario 2023 (USD sin IVA). Verificar valores antes de enviar.</div>
+      <div class="note warn" style="margin-top:14px">⚠ Los precios surgen del tarifario 2026 (USD sin IVA). Verificar valores antes de enviar.</div>
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="goStep(3)">← Volver</button>
@@ -330,54 +335,81 @@ const ESPACIOS = [
   {
     id:"auditorio", nombre:"Salón Auditorio",
     sup:"228 m²", cap:"330 butacas", ubicacion:"Subsuelo, Edificio Torre", max:330,
-    infra:["Climatización centralizada","Sistema de detección/extinción de incendios",
-           "Circuito cerrado de video","Wi-Fi","Dos salas de reunión (10 personas c/u)","Foyer de ingreso (160 m²)"],
-    desc:"Espacio de calidad y confort para múltiples eventos y presentaciones. Diseño versátil de fácil acceso que combina adaptabilidad y tecnología.",
-    tar:{ media:1250, completa:2000 }
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios, con rociadores automáticos",
+           "Circuito cerrado de video en pantallas independientes","Conectividad Wi-Fi","Dos salas de reunión con mesa directorio para 10 personas c/u",
+           "Cabina de traducción simultánea","Foyer de ingreso (160 m²)"],
+    desc:"Espacio de calidad y confort para múltiples eventos y presentaciones. Diseño versátil de fácil acceso que combina adaptabilidad y tecnología para el desarrollo de actividades.",
+    tar:{ media:1500, completa:2200 }
   },
   {
     id:"foyer_auditorio", nombre:"Foyer del Auditorio",
     sup:"160 m²", cap:"Sin capacidad fija (acreditación, cóctel, stands)", ubicacion:"Subsuelo, Edificio Torre", max:9999,
-    infra:["Climatización centralizada","Sistema de detección/extinción de incendios","Wi-Fi","Acceso desde el Auditorio y desde el exterior"],
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios","Conectividad Wi-Fi","Acceso desde el Auditorio y desde el exterior"],
     desc:"Amplio espacio de ingreso al Auditorio, ideal para desarrollar acciones complementarias: acreditación, cóctel, montaje de stands o exhibiciones gráficas.",
-    tar:{ media:470, completa:780 }
+    tar:{ media:700, completa:1100 }
   },
   {
     id:"belgrano", nombre:"Salón Manuel Belgrano",
     sup:"620 m²", cap:"700 platea / 900 cóctel / 350 escuela", ubicacion:"Primer piso, Edificio Torre", max:900,
-    infra:["Climatización centralizada","Sistema de detección/extinción de incendios",
-           "Luz natural regulable (persianas automáticas)","Piso técnico para audio y proyección",
-           "Iluminación robotizada por sectores","Cabina de traducción simultánea","Wi-Fi","Foyer de ingreso (350 m²)"],
-    desc:"Espacio adaptable y versátil con diversidad de montajes y dinámicas. Acceso independiente. Permite desde presentaciones hasta congresos de gran escala.",
-    tar:{ media:1800, completa:3000 }
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios, con rociadores automáticos",
+           "Luz natural regulada por persianas automáticas ubicadas en el techo","Piso técnico que facilita las conexiones de audio y proyección",
+           "Iluminación robotizada por sectores","Cabina de traducción simultánea","Conectividad Wi-Fi","Foyer de ingreso (350 m²)"],
+    desc:"Espacio adaptable y versátil con diversidad de montajes y dinámicas. Cuenta con acceso independiente. Su gran capacidad de m² permite desde presentaciones hasta congresos.",
+    tar:{ media:2000, completa:3200 }
   },
   {
-    id:"arte", nombre:"Espacio de Arte Prof. M. Ballesteros",
+    id:"arte", nombre:"Espacio de Arte y Exposiciones Prof. M. Ballesteros",
     sup:"270 m²", cap:"Sin capacidad fija (exposición / circulación)", ubicacion:"Planta baja, Edificio Torre", max:9999,
-    infra:["Climatización centralizada","Sistema de detección/extinción de incendios","Wi-Fi","Acceso directo desde el exterior"],
-    desc:"Espacio dinámico con acceso directo desde el exterior. Habilitado para exposiciones de arte o para complementar eventos en las instalaciones. Diseño de fluida circulación.",
-    tar:{ media:1125, completa:1875 }
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios, con rociadores automáticos","Conectividad Wi-Fi","Acceso directo desde el exterior"],
+    desc:"Espacio dinámico y con acceso directo desde el exterior. Habilitado para exposiciones de arte o para complementar eventos que se desarrollen en las instalaciones. Su diseño permite una fluida circulación de asistentes.",
+    tar:{ media:1250, completa:2100 }
+  },
+  {
+    id:"sala4piso", nombre:"Sala 4° Piso Edificio Torre",
+    sup:"A completar", cap:"Mesa de trabajo para 16 personas", ubicacion:"Cuarto piso, Edificio Torre (Paraguay 777)", max:16,
+    infra:["Mesa de trabajo para 16 personas","Smart TV / cable HDMI / telefonía IP / Wi-Fi","Climatización frío/calor","Sistema de detección y extinción de incendios"],
+    desc:"Sala de reuniones equipada para encuentros de trabajo, directorios reducidos o reuniones híbridas.",
+    tar:{ media:300, completa:400 }
   },
   {
     id:"circular", nombre:"Salón Circular",
-    sup:"A completar", cap:"A completar", ubicacion:"Edificio Institucional", max:9999,
-    infra:["A completar"],
-    desc:"A completar.",
-    tar:{ media:600, completa:1000 }
+    sup:"A completar", cap:"A completar", ubicacion:"A completar", max:9999,
+    infra:["Dato pendiente de validación"],
+    desc:"Ficha técnica pendiente de confirmación.",
+    tar:{ media:750, completa:1200 },
+    pendiente:true
   },
   {
-    id:"mercurio", nombre:"Salón Mercurio",
-    sup:"A completar", cap:"150 personas (cóctel) / 80 (platea) / 120 (escuela)", ubicacion:"Edificio Institucional, Corrientes 796", max:150,
-    infra:["A completar"],
-    desc:"A completar.",
-    tar:{ media:900, completa:1500 }
+    id:"mercurio", nombre:"Salón Restaurant Mercurio",
+    sup:"A completar", cap:"150 personas (auditorio) / 80 (escuela) / 120 (mesas redondas)", ubicacion:"Subsuelo, Edificio Institucional (Corrientes 796)", max:150,
+    infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios"],
+    desc:"Salón versátil para eventos gastronómicos, presentaciones y reuniones de mediano formato.",
+    tar:{ media:1450, completa:2000 }
   },
   {
-    id:"capacitacion", nombre:"Sala de Capacitación",
-    sup:"A completar", cap:"50 bancos", ubicacion:"Edificio Institucional, Córdoba 1402", max:50,
-    infra:["Pantalla touch 85\"","Sistema de detección/extinción de incendios","Wi-Fi"],
-    desc:"Sala de capacitación equipada con pantalla touch interactiva de 85\". Diseñada para talleres, cursos y capacitaciones con configuración en bancos.",
-    tar:{ media:480, completa:800 }
+    id:"capacitacion", nombre:"Sala 1 de Capacitación",
+    sup:"A completar", cap:"50 bancos de trabajo", ubicacion:"Primer piso, Edificio Institucional (Córdoba 1402)", max:50,
+    infra:["Pantalla touch screen de 85\"","Sistema de videoconferencia para reuniones híbridas","Sonido integral","Climatización integral frío/calor","Sistema de detección y extinción de incendios"],
+    desc:"Sala de capacitación equipada con pantalla táctil interactiva de 85\". Diseñada para talleres, cursos y capacitaciones con configuración en bancos.",
+    tar:{ media:550, completa:900 }
+  },
+  {
+    id:"estudio", nombre:"Estudio Audiovisual +BCR",
+    sup:"Estudio 40 m² · Isla de edición 10 m² · Sala de reuniones 24 m²", cap:"Producción audiovisual (no aplica capacidad de público)", ubicacion:"Edificio Torre", max:9999,
+    infra:["Dos cámaras robóticas PTZ AVMatrix operadas a distancia","Cámara Sony NXCAM profesional (grabación AVCHD Progressive)",
+           "Trípodes profesionales con cabezales fluidos","Configuraciones multicámara para transmisiones en vivo o grabaciones",
+           "Micrófonos de estudio tipo broadcast con conexiones balanceadas","Sistema de luces LED de estudio, suspendidas y direccionables",
+           "Operación técnica, realización y edición exclusivamente a través del proveedor audiovisual de la BCR"],
+    desc:"Estudio audiovisual diseñado para la realización de contenidos institucionales, entrevistas, transmisiones en vivo y producciones audiovisuales de calidad profesional.",
+    tar:{ media:550, completa:1000 }
+  },
+  {
+    id:"recinto", nombre:"Recinto de Operaciones",
+    sup:"A completar", cap:"A completar", ubicacion:"A completar", max:9999,
+    infra:["Características técnicas en proceso de actualización"],
+    desc:"Espacio incorporado al tarifario 2026. Ficha técnica y características pendientes de definición final.",
+    tar:{ media:1500, completa:2200 },
+    pendiente:true
   },
 ];
 
@@ -386,6 +418,31 @@ const DESC_ASOC = 25;
 // ─── ESTADO ──────────────────────────────────────────────────────────────────
 let espaciosSeleccionados = new Set(); // multi-select
 let jornadaActual = "media";
+
+// ─── FECHAS / DÍAS DE EVENTO ───────────────────────────────────────────────────
+function calcularDias() {
+  const ini = document.getElementById("fecha_inicio")?.value;
+  const fin = document.getElementById("fecha_fin")?.value;
+  if (!ini) return 1;
+  if (!fin || fin < ini) return 1;
+  const dIni = new Date(ini + "T00:00:00");
+  const dFin = new Date(fin + "T00:00:00");
+  const diffMs = dFin - dIni;
+  const dias = Math.round(diffMs / (1000*60*60*24)) + 1;
+  return dias > 0 ? dias : 1;
+}
+
+function onFechasChange() {
+  const ini = document.getElementById("fecha_inicio").value;
+  const finEl = document.getElementById("fecha_fin");
+  if (ini && !finEl.value) finEl.value = ini; // por defecto, evento de un día
+  if (ini && finEl.value < ini) finEl.value = ini;
+  const dias = calcularDias();
+  document.getElementById("dias_evento_display").value = dias === 1 ? "1 día" : `${dias} días`;
+  document.getElementById("multidia-note").style.display = dias > 1 ? "block" : "none";
+  buildSpaceGrid();
+  recalcular();
+}
 
 // ─── STEPPER ─────────────────────────────────────────────────────────────────
 function goStep(n) {
@@ -413,11 +470,13 @@ function esAsociado() { return document.getElementById("tipo_cliente").value ===
 // ─── SPACE GRID (multi-select) ────────────────────────────────────────────────
 function buildSpaceGrid() {
   const asistentes = parseInt(document.getElementById("asistentes").value) || 0;
+  const dias = calcularDias();
   const grid = document.getElementById("space-grid");
   grid.innerHTML = "";
   ESPACIOS.forEach(e => {
     const superado = asistentes > 0 && asistentes > e.max;
     const activo   = espaciosSeleccionados.has(e.id);
+    const precioTotal = e.tar[jornadaActual] * dias;
     const div = document.createElement("div");
     div.className = "space-card" + (activo ? " active" : "");
     div.innerHTML =
@@ -425,7 +484,8 @@ function buildSpaceGrid() {
        <div class="sc-name">${e.nombre}</div>
        <div class="sc-meta">${e.sup} · ${e.cap}</div>
        ${superado ? `<div class="sc-warn">⚠ Capacidad excedida (máx. ${e.max})</div>` : ""}
-       <div class="sc-price">Alquiler USD ${e.tar[jornadaActual].toLocaleString("es-AR")}</div>`;
+       ${e.pendiente ? `<div class="sc-warn">⚠ Ficha técnica pendiente de validación</div>` : ""}
+       <div class="sc-price">Alquiler USD ${e.tar[jornadaActual].toLocaleString("es-AR")}${dias>1 ? ` × ${dias} días = USD ${precioTotal.toLocaleString("es-AR")}` : ""}</div>`;
     div.onclick = () => {
       if (espaciosSeleccionados.has(e.id)) espaciosSeleccionados.delete(e.id);
       else espaciosSeleccionados.add(e.id);
@@ -457,14 +517,19 @@ function calcItems() {
   const items = [];
   const jLbl  = jornadaActual==="media" ? "Media jornada" : "Jornada completa";
   const conArmado = document.getElementById("jornada_armado").checked;
+  const dias = calcularDias();
 
   espaciosSeleccionados.forEach(id => {
     const e = ESPACIOS.find(x => x.id===id);
     if (!e) return;
-    items.push({ label:`${e.nombre} — ${jLbl}`, val: e.tar[jornadaActual] });
+    const totalEspacio = e.tar[jornadaActual] * dias;
+    const label = dias > 1
+      ? `${e.nombre} — ${jLbl} × ${dias} días`
+      : `${e.nombre} — ${jLbl}`;
+    items.push({ label, val: totalEspacio });
   });
 
-  // Armado: una sola vez, al valor de media jornada del espacio de mayor tarifa
+  // Armado: una sola vez (un día previo), al valor de media jornada del espacio de mayor tarifa
   if (conArmado && espaciosSeleccionados.size > 0) {
     const maxEsp = [...espaciosSeleccionados]
       .map(id => ESPACIOS.find(x => x.id===id))
@@ -501,7 +566,7 @@ function recalcular() {
     if (descExtra > 0)
       html += `<div class="summary-row discount"><span class="s-label">Descuento adicional (${descExtra}%)</span><span class="s-value">− USD ${fmt(descXtra)}</span></div>`;
     html += `<div class="summary-row total-row"><span class="s-label">Total estimado</span><span class="s-value">USD ${fmt(total)}</span></div>`;
-    html += `<p style="font-size:11px;color:#888;margin-top:8px">Valores en USD sin IVA · Tarifario 2023 · Sujeto a confirmación</p>`;
+    html += `<p style="font-size:11px;color:#888;margin-top:8px">Valores en USD sin IVA · Tarifario 2026 · Sujeto a confirmación</p>`;
   }
   cont.innerHTML = html;
 }
@@ -526,7 +591,12 @@ function generarTexto() {
   const validez    = document.getElementById("validez")?.value      || "15 días corridos";
   const nomEvento  = document.getElementById("nombre_evento").value || "[Nombre del evento]";
   const tipoEvento = document.getElementById("tipo_evento").value   || "";
-  const fechaEv    = fmtFecha(document.getElementById("fecha_evento").value);
+  const fechaIni   = document.getElementById("fecha_inicio").value;
+  const fechaFin   = document.getElementById("fecha_fin").value;
+  const dias       = calcularDias();
+  const fechaEv    = dias > 1
+    ? `${fmtFecha(fechaIni)} al ${fmtFecha(fechaFin)} (${dias} días)`
+    : fmtFecha(fechaIni);
   const hIni       = document.getElementById("hora_inicio").value   || "";
   const hFin       = document.getElementById("hora_fin").value      || "";
   const horario    = hIni&&hFin ? `${hIni} a ${hFin} hs.` : "a confirmar";
@@ -581,6 +651,7 @@ function generarTexto() {
       t += `${e.desc}\n\n`;
       t += `Infraestructura y servicios incluidos:\n`;
       e.infra.forEach(i => { t += `  • ${i}\n`; });
+      if (e.pendiente) t += `  ⚠ Ficha técnica en proceso de actualización — validar características antes de confirmar la cotización.\n`;
     });
     if (conArmado) t += `\nJornada de armado (día previo al evento) — incluida en la cotización, al valor de media jornada de cada espacio.\n`;
     t += `\n`;
@@ -602,7 +673,7 @@ function generarTexto() {
   t += `• Los precios se expresan en USD. La facturación se emite en pesos tomando\n  el dólar oficial (Banco Nación) vigente al momento de facturar.\n`;
   t += `• La jornada de armado se cotiza al valor de media jornada de cada espacio.\n`;
   t += `• Disponibilidad sujeta a confirmación al momento de la reserva.\n`;
-  t += `• Precios sin IVA. Tarifario vigente 2023.\n`;
+  t += `• Precios sin IVA. Tarifario vigente 2026.\n`;
   t += `• Validez: ${validez} desde la fecha de emisión.\n\n`;
 
   t += `${"─".repeat(60)}\n`;
