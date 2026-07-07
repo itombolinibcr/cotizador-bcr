@@ -248,9 +248,17 @@
 
     <div class="card">
       <div class="card-title"><span class="dot"></span>Tipo de jornada</div>
-      <div class="toggle-group">
+      <div class="toggle-group" id="jornada-simple">
         <button class="toggle-btn active" id="btn-media"    onclick="cambiarJornada('media')">Media jornada<small>hasta 4 horas</small></button>
         <button class="toggle-btn"        id="btn-completa" onclick="cambiarJornada('completa')">Jornada completa<small>más de 4 horas</small></button>
+      </div>
+      <div id="jornada-multi" style="display:none">
+        <p class="multi-note">ℹ El evento dura más de un día: distribuí cuántos días son de jornada completa y cuántos de media jornada. Esta combinación se aplica a todos los espacios seleccionados.</p>
+        <div class="field-grid cols-2">
+          <div class="field"><label>Días de jornada completa</label><input type="number" id="dias_completa" min="0" value="0" oninput="document.getElementById('dias_completa').dataset.tocado='1'; actualizarJornadaMulti()"></div>
+          <div class="field"><label>Días de media jornada</label><input type="number" id="dias_media" min="0" value="0" oninput="actualizarJornadaMulti()"></div>
+        </div>
+        <div class="note" id="jornada-multi-check" style="margin-top:10px"></div>
       </div>
     </div>
 
@@ -436,6 +444,47 @@ function calcularDias() {
   return dias > 0 ? dias : 1;
 }
 
+// Precio de un espacio para la cantidad de días configurada (simple o combinada)
+function precioEspacio(e) {
+  const dias = calcularDias();
+  if (dias > 1) {
+    const dc = parseInt(document.getElementById("dias_completa")?.value) || 0;
+    const dm = parseInt(document.getElementById("dias_media")?.value) || 0;
+    return e.tar.completa * dc + e.tar.media * dm;
+  }
+  return e.tar[jornadaActual] * dias;
+}
+
+function jornadaLabelActual() {
+  const dias = calcularDias();
+  if (dias > 1) {
+    const dc = parseInt(document.getElementById("dias_completa")?.value) || 0;
+    const dm = parseInt(document.getElementById("dias_media")?.value) || 0;
+    const partes = [];
+    if (dc > 0) partes.push(`${dc} ${dc===1?"día":"días"} de jornada completa`);
+    if (dm > 0) partes.push(`${dm} ${dm===1?"día":"días"} de media jornada`);
+    return partes.length ? partes.join(" + ") : "Distribución de jornada pendiente de definir";
+  }
+  return jornadaActual==="media" ? "Media jornada (hasta 4 horas)" : "Jornada completa (más de 4 horas)";
+}
+
+function actualizarJornadaMulti() {
+  const dias = calcularDias();
+  const dc = parseInt(document.getElementById("dias_completa").value) || 0;
+  const dm = parseInt(document.getElementById("dias_media").value) || 0;
+  const check = document.getElementById("jornada-multi-check");
+  const suma = dc + dm;
+  if (suma === dias) {
+    check.className = "note";
+    check.innerHTML = `✓ ${dc} + ${dm} = ${dias} días. Distribución correcta.`;
+  } else {
+    check.className = "note danger";
+    check.innerHTML = `⚠ La suma (${suma}) no coincide con los ${dias} días del evento. Ajustá los valores.`;
+  }
+  buildSpaceGrid();
+  recalcular();
+}
+
 function onFechasChange() {
   const ini = document.getElementById("fecha_inicio").value;
   const finEl = document.getElementById("fecha_fin");
@@ -444,6 +493,15 @@ function onFechasChange() {
   const dias = calcularDias();
   document.getElementById("dias_evento_display").value = dias === 1 ? "1 día" : `${dias} días`;
   document.getElementById("multidia-note").style.display = dias > 1 ? "block" : "none";
+  document.getElementById("jornada-simple").style.display = dias > 1 ? "none" : "flex";
+  document.getElementById("jornada-multi").style.display  = dias > 1 ? "block" : "none";
+  if (dias > 1) {
+    // Default sugerido: todos los días completos, editable por el usuario
+    const dcEl = document.getElementById("dias_completa");
+    const dmEl = document.getElementById("dias_media");
+    if (!dcEl.dataset.tocado) { dcEl.value = dias; dmEl.value = 0; }
+    actualizarJornadaMulti();
+  }
   buildSpaceGrid();
   recalcular();
 }
@@ -480,7 +538,7 @@ function buildSpaceGrid() {
   ESPACIOS.forEach(e => {
     const superado = asistentes > 0 && asistentes > e.max;
     const activo   = espaciosSeleccionados.has(e.id);
-    const precioTotal = e.tar[jornadaActual] * dias;
+    const precioTotal = precioEspacio(e);
     const div = document.createElement("div");
     div.className = "space-card" + (activo ? " active" : "");
     div.innerHTML =
@@ -489,7 +547,7 @@ function buildSpaceGrid() {
        <div class="sc-meta">${e.sup} · ${e.cap}</div>
        ${superado ? `<div class="sc-warn">⚠ Capacidad excedida (máx. ${e.max})</div>` : ""}
        ${e.pendiente ? `<div class="sc-warn">⚠ Ficha técnica pendiente de validación</div>` : ""}
-       <div class="sc-price">Alquiler USD ${e.tar[jornadaActual].toLocaleString("es-AR")}${dias>1 ? ` × ${dias} días = USD ${precioTotal.toLocaleString("es-AR")}` : ""}</div>`;
+       <div class="sc-price">${dias>1 ? `Total ${dias} días: USD ${precioTotal.toLocaleString("es-AR")}` : `Alquiler USD ${precioTotal.toLocaleString("es-AR")}`}</div>`;
     div.onclick = () => {
       if (espaciosSeleccionados.has(e.id)) espaciosSeleccionados.delete(e.id);
       else espaciosSeleccionados.add(e.id);
@@ -519,16 +577,16 @@ function cambiarJornada(tipo) {
 // ─── CÁLCULO ─────────────────────────────────────────────────────────────────
 function calcItems() {
   const items = [];
-  const jLbl  = jornadaActual==="media" ? "Media jornada" : "Jornada completa";
   const conArmado = document.getElementById("jornada_armado").checked;
   const dias = calcularDias();
+  const jLbl = jornadaLabelActual();
 
   espaciosSeleccionados.forEach(id => {
     const e = ESPACIOS.find(x => x.id===id);
     if (!e) return;
-    const totalEspacio = e.tar[jornadaActual] * dias;
+    const totalEspacio = precioEspacio(e);
     const label = dias > 1
-      ? `${e.nombre} — ${jLbl} × ${dias} días`
+      ? `${e.nombre} — ${jLbl}`
       : `${e.nombre} — ${jLbl}`;
     items.push({ label, val: totalEspacio });
   });
@@ -607,7 +665,7 @@ function generarTexto() {
   const asistentes = document.getElementById("asistentes").value    || "a confirmar";
   const armadoIni  = document.getElementById("armado_inicial").value|| "a definir";
   const obsEvento  = document.getElementById("obs_evento").value    || "";
-  const jLbl       = jornadaActual==="media" ? "Media jornada (hasta 4 horas)" : "Jornada completa (más de 4 horas)";
+  const jLbl       = jornadaLabelActual();
   const conArmado  = document.getElementById("jornada_armado").checked;
   const items      = calcItems();
   const subtotal   = items.reduce((a,i)=>a+i.val,0);
@@ -720,8 +778,7 @@ function constructDatosPlantilla() {
   const armadoIni  = document.getElementById("armado_inicial").value|| "a definir";
   const obsEvento  = document.getElementById("obs_evento").value    || "";
   const conArmado  = document.getElementById("jornada_armado").checked;
-  const jLbl       = jornadaActual==="media" ? "Media jornada (hasta 4 horas)" : "Jornada completa (más de 4 horas)";
-  const tipoJornadaTxt = dias > 1 ? `${jLbl} × ${dias} días` : jLbl;
+  const tipoJornadaTxt = jornadaLabelActual();
   const moneda     = document.getElementById("moneda")?.value || "USD";
   const obsEcon    = document.getElementById("obs_economicas")?.value || "";
 
@@ -730,7 +787,7 @@ function constructDatosPlantilla() {
   const adicionalesEsp = espaciosArr.slice(1);
 
   const items      = calcItems();
-  const totalEspacios = espaciosArr.reduce((acc,e) => acc + e.tar[jornadaActual]*dias, 0);
+  const totalEspacios = espaciosArr.reduce((acc,e) => acc + precioEspacio(e), 0);
   const armadoCost = conArmado && espaciosArr.length
     ? Math.max(...espaciosArr.map(e=>e.tar.media))
     : 0;
@@ -771,7 +828,7 @@ function constructDatosPlantilla() {
     espacio_superficie: principal ? principal.sup : "",
     espacio_capacidad: principal ? principal.cap : "",
     tipo_jornada: tipoJornadaTxt,
-    espacios_adicionales: adicionalesEsp.length ? adicionalesEsp.map(e=>`${e.nombre} (USD ${fmt(e.tar[jornadaActual]*dias)})`).join(", ") : "Ninguno",
+    espacios_adicionales: adicionalesEsp.length ? adicionalesEsp.map(e=>`${e.nombre} (USD ${fmt(precioEspacio(e))})`).join(", ") : "Ninguno",
     jornada_armado: conArmado ? "Sí, incluida (día previo, valor de media jornada)" : "No incluida",
     espacio_descripcion: principal ? principal.desc : "",
     infra_item_1: infra[0], infra_item_2: infra[1], infra_item_3: infra[2],
