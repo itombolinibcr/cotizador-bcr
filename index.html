@@ -65,6 +65,17 @@
   .space-card .sc-warn{font-size:11px;color:var(--danger);margin-top:3px;}
   .multi-note{font-size:12px;color:var(--text-soft);margin-bottom:10px;padding:8px 12px;background:var(--blue-pale);border-radius:var(--radius);border:1px solid var(--border);}
 
+  .linea-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;background:var(--white);position:relative;}
+  .linea-card.alt{border-color:var(--gold);background:#FBF7EE;}
+  .linea-card .linea-num{font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;}
+  .linea-card .linea-remove{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;border-radius:4px;}
+  .linea-card .linea-remove:hover{background:var(--danger-bg);color:var(--danger);}
+  .linea-card select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;background:var(--white);color:var(--text);}
+  .linea-card .linea-price{font-size:14px;font-weight:700;color:var(--navy);margin-top:10px;}
+  .linea-card .linea-alt-toggle{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--text-soft);}
+  .linea-card .linea-alt-toggle input{width:16px;height:16px;}
+  .linea-card .linea-warn{font-size:11px;color:var(--danger);margin-top:6px;}
+
   .toggle-group{display:flex;gap:8px;}
   .toggle-btn{flex:1;padding:10px 8px;text-align:center;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--white);color:var(--text-soft);cursor:pointer;font-size:13px;font-family:inherit;transition:all 0.15s;line-height:1.4;}
   .toggle-btn:hover{border-color:var(--navy-light);}
@@ -240,26 +251,11 @@
   <!-- PASO 3 -->
   <div class="paso" id="paso-3">
     <div class="card">
-      <div class="card-title"><span class="dot"></span>Selección de espacios</div>
-      <p class="multi-note">ℹ Podés seleccionar uno o varios espacios. Los seleccionados se incluirán en la cotización.</p>
-      <div class="space-grid" id="space-grid"></div>
+      <div class="card-title"><span class="dot"></span>Líneas de cotización</div>
+      <p class="multi-note">ℹ Agregá una línea por cada combinación de espacio + duración. Si un espacio se usa distinto número de días en jornada completa y en media jornada, se refleja en la misma línea. Si necesitás el mismo espacio con tramos separados, agregá varias líneas.</p>
+      <div id="lineas-container"></div>
+      <button class="btn btn-secondary" style="margin-top:10px" onclick="agregarLinea()">+ Agregar espacio</button>
       <div id="cap-alert"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><span class="dot"></span>Tipo de jornada</div>
-      <div class="toggle-group" id="jornada-simple">
-        <button class="toggle-btn active" id="btn-media"    onclick="cambiarJornada('media')">Media jornada<small>hasta 4 horas</small></button>
-        <button class="toggle-btn"        id="btn-completa" onclick="cambiarJornada('completa')">Jornada completa<small>más de 4 horas</small></button>
-      </div>
-      <div id="jornada-multi" style="display:none">
-        <p class="multi-note">ℹ El evento dura más de un día: distribuí cuántos días son de jornada completa y cuántos de media jornada. Esta combinación se aplica a todos los espacios seleccionados.</p>
-        <div class="field-grid cols-2">
-          <div class="field"><label>Días de jornada completa</label><input type="number" id="dias_completa" min="0" value="0" oninput="document.getElementById('dias_completa').dataset.tocado='1'; actualizarJornadaMulti()"></div>
-          <div class="field"><label>Días de media jornada</label><input type="number" id="dias_media" min="0" value="0" oninput="actualizarJornadaMulti()"></div>
-        </div>
-        <div class="note" id="jornada-multi-check" style="margin-top:10px"></div>
-      </div>
     </div>
 
     <div class="card">
@@ -269,7 +265,7 @@
           <input type="checkbox" id="jornada_armado" onchange="recalcular()">
           <span>
             <span class="check-label">Jornada de armado (día previo al evento)</span>
-            <span class="check-sub">Se cotiza una sola vez, al valor de media jornada del espacio de mayor tarifa seleccionado</span>
+            <span class="check-sub">Se cotiza una sola vez, al valor de media jornada del espacio confirmado (no alternativo) de mayor tarifa</span>
           </span>
         </label>
       </div>
@@ -286,6 +282,10 @@
     <div class="card">
       <div class="card-title"><span class="dot"></span>Resumen económico</div>
       <div class="summary-table" id="resumen-economico"></div>
+    </div>
+    <div class="card" id="card-alternativas" style="display:none">
+      <div class="card-title"><span class="dot"></span>Opciones a elección del cliente <span class="badge opt">No incluidas en el total</span></div>
+      <div class="summary-table" id="resumen-alternativas"></div>
     </div>
     <div class="card">
       <div class="card-title"><span class="dot"></span>Ajustes y configuración</div>
@@ -428,10 +428,11 @@ const ESPACIOS = [
 const DESC_ASOC = 25;
 
 // ─── ESTADO ──────────────────────────────────────────────────────────────────
-let espaciosSeleccionados = new Set(); // multi-select
-let jornadaActual = "media";
+// Cada línea: { uid, espacioId, diasCompleta, diasMedia, alternativa }
+let lineas = [];
+let uidCounter = 1;
 
-// ─── FECHAS / DÍAS DE EVENTO ───────────────────────────────────────────────────
+// ─── FECHAS / DÍAS DE EVENTO (referencia general del evento) ─────────────────
 function calcularDias() {
   const ini = document.getElementById("fecha_inicio")?.value;
   const fin = document.getElementById("fecha_fin")?.value;
@@ -444,47 +445,6 @@ function calcularDias() {
   return dias > 0 ? dias : 1;
 }
 
-// Precio de un espacio para la cantidad de días configurada (simple o combinada)
-function precioEspacio(e) {
-  const dias = calcularDias();
-  if (dias > 1) {
-    const dc = parseInt(document.getElementById("dias_completa")?.value) || 0;
-    const dm = parseInt(document.getElementById("dias_media")?.value) || 0;
-    return e.tar.completa * dc + e.tar.media * dm;
-  }
-  return e.tar[jornadaActual] * dias;
-}
-
-function jornadaLabelActual() {
-  const dias = calcularDias();
-  if (dias > 1) {
-    const dc = parseInt(document.getElementById("dias_completa")?.value) || 0;
-    const dm = parseInt(document.getElementById("dias_media")?.value) || 0;
-    const partes = [];
-    if (dc > 0) partes.push(`${dc} ${dc===1?"día":"días"} de jornada completa`);
-    if (dm > 0) partes.push(`${dm} ${dm===1?"día":"días"} de media jornada`);
-    return partes.length ? partes.join(" + ") : "Distribución de jornada pendiente de definir";
-  }
-  return jornadaActual==="media" ? "Media jornada (hasta 4 horas)" : "Jornada completa (más de 4 horas)";
-}
-
-function actualizarJornadaMulti() {
-  const dias = calcularDias();
-  const dc = parseInt(document.getElementById("dias_completa").value) || 0;
-  const dm = parseInt(document.getElementById("dias_media").value) || 0;
-  const check = document.getElementById("jornada-multi-check");
-  const suma = dc + dm;
-  if (suma === dias) {
-    check.className = "note";
-    check.innerHTML = `✓ ${dc} + ${dm} = ${dias} días. Distribución correcta.`;
-  } else {
-    check.className = "note danger";
-    check.innerHTML = `⚠ La suma (${suma}) no coincide con los ${dias} días del evento. Ajustá los valores.`;
-  }
-  buildSpaceGrid();
-  recalcular();
-}
-
 function onFechasChange() {
   const ini = document.getElementById("fecha_inicio").value;
   const finEl = document.getElementById("fecha_fin");
@@ -493,16 +453,6 @@ function onFechasChange() {
   const dias = calcularDias();
   document.getElementById("dias_evento_display").value = dias === 1 ? "1 día" : `${dias} días`;
   document.getElementById("multidia-note").style.display = dias > 1 ? "block" : "none";
-  document.getElementById("jornada-simple").style.display = dias > 1 ? "none" : "flex";
-  document.getElementById("jornada-multi").style.display  = dias > 1 ? "block" : "none";
-  if (dias > 1) {
-    // Default sugerido: todos los días completos, editable por el usuario
-    const dcEl = document.getElementById("dias_completa");
-    const dmEl = document.getElementById("dias_media");
-    if (!dcEl.dataset.tocado) { dcEl.value = dias; dmEl.value = 0; }
-    actualizarJornadaMulti();
-  }
-  buildSpaceGrid();
   recalcular();
 }
 
@@ -517,7 +467,7 @@ function goStep(n) {
     else if (sn < n) s.classList.add("done");
   });
   window.scrollTo({ top:0, behavior:"smooth" });
-  if (n===3) buildSpaceGrid();
+  if (n===3) { if (lineas.length===0) agregarLinea(); else renderLineas(); }
   if (n===4) recalcular();
   if (n===5) generarTexto();
 }
@@ -529,72 +479,97 @@ function onTipoClienteChange() {
 }
 function esAsociado() { return document.getElementById("tipo_cliente").value === "Asociado BCR"; }
 
-// ─── SPACE GRID (multi-select) ────────────────────────────────────────────────
-function buildSpaceGrid() {
-  const asistentes = parseInt(document.getElementById("asistentes").value) || 0;
-  const dias = calcularDias();
-  const grid = document.getElementById("space-grid");
-  grid.innerHTML = "";
-  ESPACIOS.forEach(e => {
-    const superado = asistentes > 0 && asistentes > e.max;
-    const activo   = espaciosSeleccionados.has(e.id);
-    const precioTotal = precioEspacio(e);
-    const div = document.createElement("div");
-    div.className = "space-card" + (activo ? " active" : "");
-    div.innerHTML =
-      `<div class="sc-check"><svg viewBox="0 0 12 10" fill="none" stroke="white" stroke-width="2.5"><polyline points="1,5 4.5,9 11,1"/></svg></div>
-       <div class="sc-name">${e.nombre}</div>
-       <div class="sc-meta">${e.sup} · ${e.cap}</div>
-       ${superado ? `<div class="sc-warn">⚠ Capacidad excedida (máx. ${e.max})</div>` : ""}
-       ${e.pendiente ? `<div class="sc-warn">⚠ Ficha técnica pendiente de validación</div>` : ""}
-       <div class="sc-price">${dias>1 ? `Total ${dias} días: USD ${precioTotal.toLocaleString("es-AR")}` : `Alquiler USD ${precioTotal.toLocaleString("es-AR")}`}</div>`;
-    div.onclick = () => {
-      if (espaciosSeleccionados.has(e.id)) espaciosSeleccionados.delete(e.id);
-      else espaciosSeleccionados.add(e.id);
-      buildSpaceGrid(); recalcular();
-    };
-    grid.appendChild(div);
-  });
-  // alerta capacidad
-  const alert = document.getElementById("cap-alert");
-  const superados = [...espaciosSeleccionados].filter(id => {
-    const e = ESPACIOS.find(x => x.id===id);
-    return e && asistentes > 0 && asistentes > e.max;
-  });
-  alert.innerHTML = superados.length
-    ? `<div class="note danger" style="margin-top:10px">⚠ Los asistentes superan la capacidad de: ${superados.map(id=>ESPACIOS.find(x=>x.id===id).nombre).join(", ")}.</div>`
-    : "";
+// ─── LÍNEAS DE COTIZACIÓN ──────────────────────────────────────────────────────
+function agregarLinea() {
+  lineas.push({ uid: uidCounter++, espacioId: ESPACIOS[0].id, diasCompleta: 1, diasMedia: 0, alternativa: false });
+  renderLineas();
+  recalcular();
 }
 
-// ─── JORNADA ─────────────────────────────────────────────────────────────────
-function cambiarJornada(tipo) {
-  jornadaActual = tipo;
-  document.getElementById("btn-media").classList.toggle("active", tipo==="media");
-  document.getElementById("btn-completa").classList.toggle("active", tipo==="completa");
-  buildSpaceGrid(); recalcular();
+function eliminarLinea(uid) {
+  lineas = lineas.filter(l => l.uid !== uid);
+  renderLineas();
+  recalcular();
+}
+
+function actualizarLinea(uid, campo, valor) {
+  const l = lineas.find(x => x.uid === uid);
+  if (!l) return;
+  if (campo === "espacioId") l.espacioId = valor;
+  else if (campo === "alternativa") l.alternativa = valor;
+  else l[campo] = Math.max(0, parseInt(valor) || 0);
+  renderLineas();
+  recalcular();
+}
+
+function precioLinea(l) {
+  const e = ESPACIOS.find(x => x.id === l.espacioId);
+  if (!e) return 0;
+  return e.tar.completa * l.diasCompleta + e.tar.media * l.diasMedia;
+}
+
+function jornadaLabelLinea(l) {
+  const partes = [];
+  if (l.diasCompleta > 0) partes.push(`${l.diasCompleta} ${l.diasCompleta===1?"día":"días"} de jornada completa`);
+  if (l.diasMedia > 0) partes.push(`${l.diasMedia} ${l.diasMedia===1?"día":"días"} de media jornada`);
+  return partes.length ? partes.join(" + ") : "Sin días asignados";
+}
+
+function renderLineas() {
+  const asistentes = parseInt(document.getElementById("asistentes")?.value) || 0;
+  const cont = document.getElementById("lineas-container");
+  if (!cont) return;
+  cont.innerHTML = "";
+  lineas.forEach((l, idx) => {
+    const e = ESPACIOS.find(x => x.id === l.espacioId);
+    const superado = e && asistentes > 0 && asistentes > e.max;
+    const precio = precioLinea(l);
+    const div = document.createElement("div");
+    div.className = "linea-card" + (l.alternativa ? " alt" : "");
+    div.innerHTML = `
+      <button class="linea-remove" onclick="eliminarLinea(${l.uid})" title="Eliminar línea">✕</button>
+      <div class="linea-num">Línea ${idx+1}${l.alternativa ? " · Opción alternativa" : ""}</div>
+      <div class="field-grid">
+        <div class="field"><label>Espacio</label>
+          <select onchange="actualizarLinea(${l.uid}, 'espacioId', this.value)">
+            ${ESPACIOS.map(es => `<option value="${es.id}" ${es.id===l.espacioId?"selected":""}>${es.nombre}${es.pendiente?" (ficha pendiente)":""}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="field-grid cols-2 spacer">
+        <div class="field"><label>Días jornada completa</label><input type="number" min="0" value="${l.diasCompleta}" onchange="actualizarLinea(${l.uid}, 'diasCompleta', this.value)"></div>
+        <div class="field"><label>Días media jornada</label><input type="number" min="0" value="${l.diasMedia}" onchange="actualizarLinea(${l.uid}, 'diasMedia', this.value)"></div>
+      </div>
+      <label class="linea-alt-toggle">
+        <input type="checkbox" ${l.alternativa?"checked":""} onchange="actualizarLinea(${l.uid}, 'alternativa', this.checked)">
+        Es una opción a elección del cliente (no sumar al total — se muestra aparte)
+      </label>
+      ${superado ? `<div class="linea-warn">⚠ Los asistentes (${asistentes}) superan la capacidad de este espacio (máx. ${e.max})</div>` : ""}
+      ${e && e.pendiente ? `<div class="linea-warn">⚠ Ficha técnica pendiente de validación</div>` : ""}
+      <div class="linea-price">${jornadaLabelLinea(l)} — USD ${precio.toLocaleString("es-AR")}</div>
+    `;
+    cont.appendChild(div);
+  });
+  const alert = document.getElementById("cap-alert");
+  if (alert) alert.innerHTML = "";
 }
 
 // ─── CÁLCULO ─────────────────────────────────────────────────────────────────
-function calcItems() {
+function calcItemsConfirmados() {
   const items = [];
   const conArmado = document.getElementById("jornada_armado").checked;
-  const dias = calcularDias();
-  const jLbl = jornadaLabelActual();
+  const confirmadas = lineas.filter(l => !l.alternativa);
 
-  espaciosSeleccionados.forEach(id => {
-    const e = ESPACIOS.find(x => x.id===id);
+  confirmadas.forEach(l => {
+    const e = ESPACIOS.find(x => x.id === l.espacioId);
     if (!e) return;
-    const totalEspacio = precioEspacio(e);
-    const label = dias > 1
-      ? `${e.nombre} — ${jLbl}`
-      : `${e.nombre} — ${jLbl}`;
-    items.push({ label, val: totalEspacio });
+    items.push({ label: `${e.nombre} — ${jornadaLabelLinea(l)}`, val: precioLinea(l) });
   });
 
-  // Armado: una sola vez (un día previo), al valor de media jornada del espacio de mayor tarifa
-  if (conArmado && espaciosSeleccionados.size > 0) {
-    const maxEsp = [...espaciosSeleccionados]
-      .map(id => ESPACIOS.find(x => x.id===id))
+  // Armado: una sola vez (un día previo), al valor de media jornada del espacio confirmado de mayor tarifa
+  if (conArmado && confirmadas.length > 0) {
+    const maxEsp = confirmadas
+      .map(l => ESPACIOS.find(x => x.id === l.espacioId))
       .filter(Boolean)
       .reduce((a,b) => b.tar.media > a.tar.media ? b : a);
     items.push({ label:`Jornada de armado (ref. ${maxEsp.nombre})`, val: maxEsp.tar.media });
@@ -605,8 +580,15 @@ function calcItems() {
   return items;
 }
 
+function calcItemsAlternativos() {
+  return lineas.filter(l => l.alternativa).map(l => {
+    const e = ESPACIOS.find(x => x.id === l.espacioId);
+    return e ? { label: `${e.nombre} — ${jornadaLabelLinea(l)}`, val: precioLinea(l) } : null;
+  }).filter(Boolean);
+}
+
 function recalcular() {
-  const items    = calcItems();
+  const items    = calcItemsConfirmados();
   const subtotal = items.reduce((a,i) => a+i.val, 0);
   const descAsoc = esAsociado() ? subtotal*(DESC_ASOC/100) : 0;
   const basePost = subtotal - descAsoc;
@@ -618,7 +600,7 @@ function recalcular() {
   if (!cont) return;
   let html = "";
   if (items.length === 0) {
-    html = `<p style="font-size:13px;color:var(--text-soft);padding:8px 0">Seleccioná al menos un espacio para ver el resumen.</p>`;
+    html = `<p style="font-size:13px;color:var(--text-soft);padding:8px 0">Agregá al menos una línea confirmada (no alternativa) para ver el resumen.</p>`;
   } else {
     items.forEach(i => {
       html += `<div class="summary-row"><span class="s-label">${i.label}</span><span class="s-value">USD ${fmt(i.val)}</span></div>`;
@@ -631,6 +613,24 @@ function recalcular() {
     html += `<p style="font-size:11px;color:#888;margin-top:8px">Valores en USD sin IVA · Tarifario 2026 · Sujeto a confirmación</p>`;
   }
   cont.innerHTML = html;
+
+  // Opciones alternativas (no se suman)
+  const alternativas = calcItemsAlternativos();
+  const cardAlt = document.getElementById("card-alternativas");
+  const contAlt = document.getElementById("resumen-alternativas");
+  if (cardAlt && contAlt) {
+    if (alternativas.length === 0) {
+      cardAlt.style.display = "none";
+    } else {
+      cardAlt.style.display = "block";
+      let htmlAlt = "";
+      alternativas.forEach(i => {
+        htmlAlt += `<div class="summary-row"><span class="s-label">${i.label}</span><span class="s-value">USD ${fmt(i.val)}</span></div>`;
+      });
+      htmlAlt += `<p style="font-size:11px;color:#888;margin-top:8px">Estas opciones no están incluidas en el total — el cliente elige una (o ninguna).</p>`;
+      contAlt.innerHTML = htmlAlt;
+    }
+  }
 }
 
 function fmt(n) { return n.toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -665,9 +665,8 @@ function generarTexto() {
   const asistentes = document.getElementById("asistentes").value    || "a confirmar";
   const armadoIni  = document.getElementById("armado_inicial").value|| "a definir";
   const obsEvento  = document.getElementById("obs_evento").value    || "";
-  const jLbl       = jornadaLabelActual();
   const conArmado  = document.getElementById("jornada_armado").checked;
-  const items      = calcItems();
+  const items      = calcItemsConfirmados();
   const subtotal   = items.reduce((a,i)=>a+i.val,0);
   const descAsoc   = esAsociado() ? subtotal*(DESC_ASOC/100) : 0;
   const basePost   = subtotal - descAsoc;
@@ -677,7 +676,8 @@ function generarTexto() {
   const moneda     = document.getElementById("moneda")?.value || "USD";
   const obsEcon    = document.getElementById("obs_economicas")?.value || "";
 
-  const espaciosArr = [...espaciosSeleccionados].map(id => ESPACIOS.find(x=>x.id===id)).filter(Boolean);
+  const confirmadas   = lineas.filter(l => !l.alternativa);
+  const alternativas  = lineas.filter(l => l.alternativa);
 
   let t = "";
   t += `COTIZACIÓN DE ALQUILER DE ESPACIOS\n`;
@@ -703,11 +703,13 @@ function generarTexto() {
   if (obsEvento) t += `Observaciones: ${obsEvento}\n`;
   t += `\n`;
 
-  if (espaciosArr.length > 0) {
+  if (confirmadas.length > 0) {
     t += `ESPACIO(S) COTIZADO(S)\n${"─".repeat(40)}\n`;
-    espaciosArr.forEach((e, idx) => {
+    confirmadas.forEach((l, idx) => {
+      const e = ESPACIOS.find(x => x.id === l.espacioId);
+      if (!e) return;
       if (idx > 0) t += `\n${"· ".repeat(20)}\n\n`;
-      t += `${e.nombre}\n`;
+      t += `${e.nombre} — ${jornadaLabelLinea(l)}\n`;
       t += `Ubicación: ${e.ubicacion}\n`;
       t += `Superficie: ${e.sup} · Capacidad: ${e.cap}\n`;
       t += `${e.desc}\n\n`;
@@ -715,7 +717,7 @@ function generarTexto() {
       e.infra.forEach(i => { t += `  • ${i}\n`; });
       if (e.pendiente) t += `  ⚠ Ficha técnica en proceso de actualización — validar características antes de confirmar la cotización.\n`;
     });
-    if (conArmado) t += `\nJornada de armado (día previo al evento) — incluida en la cotización, al valor de media jornada de cada espacio.\n`;
+    if (conArmado) t += `\nJornada de armado (día previo al evento) — incluida en la cotización, al valor de media jornada del espacio confirmado de mayor tarifa.\n`;
     t += `\n`;
   }
 
@@ -728,14 +730,25 @@ function generarTexto() {
   if (obsEcon) t += `\nObservaciones económicas: ${obsEcon}\n`;
   t += `\n`;
 
+  if (alternativas.length > 0) {
+    t += `OPCIONES A ELECCIÓN DEL CLIENTE (no incluidas en el total)\n${"─".repeat(40)}\n`;
+    alternativas.forEach(l => {
+      const e = ESPACIOS.find(x => x.id === l.espacioId);
+      if (!e) return;
+      t += `${e.nombre} — ${jornadaLabelLinea(l)}: USD ${fmt(precioLinea(l))}\n`;
+    });
+    t += `El cliente elige una de estas opciones (o ninguna); su costo no está sumado al total anterior.\n\n`;
+  }
+
   t += `CONDICIONES COMERCIALES\n${"─".repeat(40)}\n`;
   t += `• Seña del 30% al momento de confirmar la reserva.\n`;
   t += `• El 70% restante debe abonarse hasta 72 horas antes del evento.\n`;
   t += `• Formas de pago: e-cheq o transferencia bancaria (pesos o dólares).\n`;
   t += `• Los precios se expresan en USD. La facturación se emite en pesos tomando\n  el dólar oficial (Banco Nación) vigente al momento de facturar.\n`;
-  t += `• La jornada de armado se cotiza al valor de media jornada de cada espacio.\n`;
+  t += `• La jornada de armado se cotiza al valor de media jornada del espacio de mayor tarifa.\n`;
   t += `• Disponibilidad sujeta a confirmación al momento de la reserva.\n`;
   t += `• Precios sin IVA. Tarifario vigente 2026.\n`;
+  t += `• La Bolsa de Comercio de Rosario se encuentra exenta del pago de diversos impuestos (ver legajo impositivo adjunto).\n`;
   t += `• Validez: ${validez} desde la fecha de emisión.\n\n`;
 
   t += `${"─".repeat(60)}\n`;
@@ -778,18 +791,19 @@ function constructDatosPlantilla() {
   const armadoIni  = document.getElementById("armado_inicial").value|| "a definir";
   const obsEvento  = document.getElementById("obs_evento").value    || "";
   const conArmado  = document.getElementById("jornada_armado").checked;
-  const tipoJornadaTxt = jornadaLabelActual();
   const moneda     = document.getElementById("moneda")?.value || "USD";
   const obsEcon    = document.getElementById("obs_economicas")?.value || "";
 
-  const espaciosArr = [...espaciosSeleccionados].map(id => ESPACIOS.find(x=>x.id===id)).filter(Boolean);
-  const principal   = espaciosArr[0] || null;
-  const adicionalesEsp = espaciosArr.slice(1);
+  const confirmadas  = lineas.filter(l => !l.alternativa);
+  const alternativas = lineas.filter(l => l.alternativa);
+  const principalLinea = confirmadas[0] || null;
+  const principal   = principalLinea ? ESPACIOS.find(x => x.id === principalLinea.espacioId) : null;
+  const adicionalesLineas = confirmadas.slice(1);
 
-  const items      = calcItems();
-  const totalEspacios = espaciosArr.reduce((acc,e) => acc + precioEspacio(e), 0);
-  const armadoCost = conArmado && espaciosArr.length
-    ? Math.max(...espaciosArr.map(e=>e.tar.media))
+  const items      = calcItemsConfirmados();
+  const totalEspacios = confirmadas.reduce((acc,l) => acc + precioLinea(l), 0);
+  const armadoCost = conArmado && confirmadas.length
+    ? Math.max(...confirmadas.map(l => ESPACIOS.find(x=>x.id===l.espacioId)?.tar.media || 0))
     : 0;
   const adicManual = parseFloat(document.getElementById("adicionales")?.value) || 0;
   const costoAdicionales = armadoCost + adicManual;
@@ -807,6 +821,13 @@ function constructDatosPlantilla() {
 
   const infra = principal ? principal.infra.slice(0,6) : [];
   while (infra.length < 6) infra.push("");
+
+  const opcionesAltTxt = alternativas.length
+    ? alternativas.map(l => {
+        const e = ESPACIOS.find(x => x.id === l.espacioId);
+        return e ? `${e.nombre} — ${jornadaLabelLinea(l)}: USD ${fmt(precioLinea(l))} (no incluido en el total; a elección del cliente)` : null;
+      }).filter(Boolean).join("\n")
+    : "No se presentaron opciones alternativas para este evento.";
 
   return {
     fecha_emision: fechaEmis,
@@ -827,8 +848,11 @@ function constructDatosPlantilla() {
     espacio_ubicacion: principal ? principal.ubicacion : "",
     espacio_superficie: principal ? principal.sup : "",
     espacio_capacidad: principal ? principal.cap : "",
-    tipo_jornada: tipoJornadaTxt,
-    espacios_adicionales: adicionalesEsp.length ? adicionalesEsp.map(e=>`${e.nombre} (USD ${fmt(precioEspacio(e))})`).join(", ") : "Ninguno",
+    tipo_jornada: principalLinea ? jornadaLabelLinea(principalLinea) : "",
+    espacios_adicionales: adicionalesLineas.length ? adicionalesLineas.map(l=>{
+      const e = ESPACIOS.find(x=>x.id===l.espacioId);
+      return e ? `${e.nombre} — ${jornadaLabelLinea(l)} (USD ${fmt(precioLinea(l))})` : null;
+    }).filter(Boolean).join(", ") : "Ninguno",
     jornada_armado: conArmado ? "Sí, incluida (día previo, valor de media jornada)" : "No incluida",
     espacio_descripcion: principal ? principal.desc : "",
     infra_item_1: infra[0], infra_item_2: infra[1], infra_item_3: infra[2],
@@ -839,13 +863,15 @@ function constructDatosPlantilla() {
     total: `USD ${fmt(total)}`,
     moneda: moneda,
     obs_economicas: obsEcon || "Sin observaciones",
+    opciones_alternativas: opcionesAltTxt,
     responsable: responsable || "[Responsable]"
   };
 }
 
 function generarWord() {
-  if (espaciosSeleccionados.size === 0) {
-    showToast("⚠ Seleccioná al menos un espacio antes de generar el Word");
+  const confirmadas = lineas.filter(l => !l.alternativa);
+  if (confirmadas.length === 0) {
+    showToast("⚠ Agregá al menos una línea confirmada (no alternativa) antes de generar el Word");
     return;
   }
   if (typeof PizZipUtils === "undefined" || typeof docxtemplater === "undefined") {
