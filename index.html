@@ -796,9 +796,6 @@ function constructDatosPlantilla() {
 
   const confirmadas  = lineas.filter(l => !l.alternativa);
   const alternativas = lineas.filter(l => l.alternativa);
-  const principalLinea = confirmadas[0] || null;
-  const principal   = principalLinea ? ESPACIOS.find(x => x.id === principalLinea.espacioId) : null;
-  const adicionalesLineas = confirmadas.slice(1);
 
   const items      = calcItemsConfirmados();
   const totalEspacios = confirmadas.reduce((acc,l) => acc + precioLinea(l), 0);
@@ -819,8 +816,20 @@ function constructDatosPlantilla() {
   if (descExtra > 0) descuentoTxt.push(`${descExtra}% adicional`);
   descuentoTxt = descuentoTxt.length ? descuentoTxt.join(" + ") : "Sin descuento";
 
-  const infra = principal ? principal.infra.slice(0,6) : [];
-  while (infra.length < 6) infra.push("");
+  // Ficha completa de CADA espacio confirmado (no solo el "principal")
+  const espaciosDetalle = confirmadas.map(l => {
+    const e = ESPACIOS.find(x => x.id === l.espacioId);
+    if (!e) return null;
+    return {
+      nombre: e.nombre,
+      jornada: jornadaLabelLinea(l),
+      ubicacion: e.ubicacion,
+      superficie: e.sup,
+      capacidad: e.cap,
+      descripcion: e.desc + (e.pendiente ? " ⚠ Ficha técnica en proceso de actualización — validar antes de confirmar." : ""),
+      infra: e.infra,
+    };
+  }).filter(Boolean);
 
   const opcionesAltTxt = alternativas.length
     ? alternativas.map(l => {
@@ -844,19 +853,8 @@ function constructDatosPlantilla() {
     asistentes: asistentes,
     armado_inicial: armadoIni,
     obs_evento: obsEvento || "Sin observaciones",
-    espacio_nombre: principal ? principal.nombre : "[Espacio no seleccionado]",
-    espacio_ubicacion: principal ? principal.ubicacion : "",
-    espacio_superficie: principal ? principal.sup : "",
-    espacio_capacidad: principal ? principal.cap : "",
-    tipo_jornada: principalLinea ? jornadaLabelLinea(principalLinea) : "",
-    espacios_adicionales: adicionalesLineas.length ? adicionalesLineas.map(l=>{
-      const e = ESPACIOS.find(x=>x.id===l.espacioId);
-      return e ? `${e.nombre} — ${jornadaLabelLinea(l)} (USD ${fmt(precioLinea(l))})` : null;
-    }).filter(Boolean).join(", ") : "Ninguno",
+    espacios: espaciosDetalle,
     jornada_armado: conArmado ? "Sí, incluida (día previo, valor de media jornada)" : "No incluida",
-    espacio_descripcion: principal ? principal.desc : "",
-    infra_item_1: infra[0], infra_item_2: infra[1], infra_item_3: infra[2],
-    infra_item_4: infra[3], infra_item_5: infra[4], infra_item_6: infra[5],
     costo_alquiler: `USD ${fmt(totalEspacios)}`,
     costo_adicionales: `USD ${fmt(costoAdicionales)}`,
     descuento: descuentoTxt,
