@@ -185,6 +185,14 @@
         </div>
       </div>
       <div class="asociado-note" id="nota_asociado">✓ Se aplicará automáticamente un descuento del 25% sobre la tarifa total por tratarse de un Asociado BCR.</div>
+      <div class="field-grid cols-2 spacer">
+        <div class="field"><label>¿Es una agencia?</label>
+          <select id="es_agencia">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="goStep(2)">Continuar →</button>
@@ -764,6 +772,72 @@ function copiarTexto() {
   navigator.clipboard.writeText(document.getElementById("preview-text").textContent)
     .then(() => showToast("✓ Texto copiado al portapapeles"));
 }
+// ─── REGISTRO AUTOMÁTICO EN PLANILLA DE SEGUIMIENTO (Google Sheets) ───────────
+// Pegar acá la URL del Web App que se obtiene al publicar el Apps Script
+// (ver guía de configuración). Mientras diga "PEGAR_AQUI...", el registro
+// automático queda deshabilitado y el cotizador sigue funcionando igual.
+const SHEET_WEBAPP_URL = "PEGAR_AQUI_LA_URL_DEL_WEB_APP_DE_APPS_SCRIPT";
+
+function construirDatosPlanilla() {
+  const confirmadas = lineas.filter(l => !l.alternativa);
+  const dias = calcularDias();
+  const fechaIni = document.getElementById("fecha_inicio").value;
+  const fechaFin = document.getElementById("fecha_fin").value;
+  const fechaEv  = dias > 1
+    ? `${fmtFecha(fechaIni)} al ${fmtFecha(fechaFin)} (${dias} días)`
+    : fmtFecha(fechaIni);
+  const hIni = document.getElementById("hora_inicio").value || "";
+  const hFin = document.getElementById("hora_fin").value || "";
+  const horario = hIni && hFin ? `${hIni} a ${hFin} hs.` : "a confirmar";
+
+  const servicioCotizado = confirmadas.map(l => {
+    const e = ESPACIOS.find(x => x.id === l.espacioId);
+    return e ? e.nombre : null;
+  }).filter(Boolean).join(" / ");
+
+  const totalGeneral = calcItemsConfirmados().reduce((a,i) => a+i.val, 0);
+  const valorCotizado = confirmadas.map(l => {
+    const e = ESPACIOS.find(x => x.id === l.espacioId);
+    return e ? `${e.nombre}: USD ${fmt(precioLinea(l))}` : null;
+  }).filter(Boolean).join(" / ") + ` (Total: USD ${fmt(totalGeneral)})`;
+
+  const anio = fechaIni ? new Date(fechaIni + "T00:00:00").getFullYear() : new Date().getFullYear();
+
+  return {
+    status: "COT",
+    cliente: document.getElementById("org").value || "",
+    contacto: document.getElementById("contacto").value || "",
+    fecha_cotizacion: fmtFecha(document.getElementById("fecha_emision").value),
+    fecha_evento: fechaEv,
+    horario: horario,
+    tipo_evento: document.getElementById("tipo_evento").value || "",
+    servicio_cotizado: servicioCotizado,
+    valor_cotizado: valorCotizado,
+    socio: esAsociado() ? "si" : "no",
+    agencia: document.getElementById("es_agencia")?.value || "no",
+    cotizo: document.getElementById("responsable").value || "",
+    anio: anio
+  };
+}
+
+function registrarEnPlanilla() {
+  if (!SHEET_WEBAPP_URL || SHEET_WEBAPP_URL.startsWith("PEGAR_AQUI")) {
+    return; // registro automático no configurado todavía — no interrumpe el flujo normal
+  }
+  const datos = construirDatosPlanilla();
+  fetch(SHEET_WEBAPP_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(datos)
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (res.ok) showToast("✓ Cotización registrada en la planilla de seguimiento");
+      else showToast("⚠ El Word se generó, pero no se pudo registrar en la planilla");
+    })
+    .catch(() => showToast("⚠ El Word se generó, pero no se pudo conectar con la planilla"));
+}
+
 // ─── GENERAR WORD (client-side, sin backend) ──────────────────────────────────
 const PLANTILLA_DOCX_URL = "plantilla_cotizacion.docx"; // debe estar en la misma carpeta que este HTML
 
@@ -905,6 +979,7 @@ function generarWord() {
       link.click();
       document.body.removeChild(link);
       showToast("✓ Word generado y descargado");
+      registrarEnPlanilla();
     } catch (e) {
       console.error(e);
       showToast("✗ Error al generar el Word. Revisá la consola (F12).");
