@@ -359,14 +359,16 @@ const ESPACIOS = [
            "Circuito cerrado de video en pantallas independientes","Conectividad Wi-Fi","Dos salas de reunión con mesa directorio para 10 personas c/u",
            "Cabina de traducción simultánea","Foyer de ingreso (160 m²)"],
     desc:"Espacio de calidad y confort para múltiples eventos y presentaciones. Diseño versátil de fácil acceso que combina adaptabilidad y tecnología para el desarrollo de actividades.",
-    tar:{ media:1500, completa:2200 }
+    tar:{ media:1500, completa:2200 },
+    apertura:{ media:815.06, completa:1194.35 }
   },
   {
     id:"foyer_auditorio", nombre:"Foyer del Auditorio",
     sup:"160 m²", cap:"Sin capacidad fija (acreditación, cóctel, stands)", ubicacion:"Subsuelo, Edificio Torre", max:9999,
     infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios","Conectividad Wi-Fi","Acceso desde el Auditorio y desde el exterior"],
     desc:"Amplio espacio de ingreso al Auditorio, ideal para desarrollar acciones complementarias: acreditación, cóctel, montaje de stands o exhibiciones gráficas.",
-    tar:{ media:700, completa:1100 }
+    tar:{ media:700, completa:1100 },
+    apertura:{ media:376.25, completa:591.15 }
   },
   {
     id:"belgrano", nombre:"Salón Manuel Belgrano",
@@ -375,21 +377,24 @@ const ESPACIOS = [
            "Luz natural regulada por persianas automáticas ubicadas en el techo","Piso técnico que facilita las conexiones de audio y proyección",
            "Iluminación robotizada por sectores","Cabina de traducción simultánea","Conectividad Wi-Fi","Foyer de ingreso (350 m²)"],
     desc:"Espacio adaptable y versátil con diversidad de montajes y dinámicas. Cuenta con acceso independiente. Su gran capacidad de m² permite desde presentaciones hasta congresos.",
-    tar:{ media:2000, completa:3200 }
+    tar:{ media:2000, completa:3200 },
+    apertura:{ media:1087.77, completa:1501.15 }
   },
   {
     id:"arte", nombre:"Espacio de Arte y Exposiciones Prof. M. Ballesteros",
     sup:"270 m²", cap:"Sin capacidad fija (exposición / circulación)", ubicacion:"Planta baja, Edificio Torre", max:9999,
     infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios, con rociadores automáticos","Conectividad Wi-Fi","Acceso directo desde el exterior"],
     desc:"Espacio dinámico y con acceso directo desde el exterior. Habilitado para exposiciones de arte o para complementar eventos que se desarrollen en las instalaciones. Su diseño permite una fluida circulación de asistentes.",
-    tar:{ media:1250, completa:2100 }
+    tar:{ media:1250, completa:2100 },
+    apertura:{ media:675.0, completa:1125.0 }
   },
   {
     id:"sala4piso", nombre:"Sala 4° Piso Edificio Torre",
     sup:"A completar", cap:"Mesa de trabajo para 16 personas", ubicacion:"Cuarto piso, Edificio Torre (Paraguay 777)", max:16,
     infra:["Mesa de trabajo para 16 personas","Smart TV / cable HDMI / telefonía IP / Wi-Fi","Climatización frío/calor","Sistema de detección y extinción de incendios"],
     desc:"Sala de reuniones equipada para encuentros de trabajo, directorios reducidos o reuniones híbridas.",
-    tar:{ media:300, completa:400 }
+    tar:{ media:300, completa:400 },
+    apertura:{ media:0, completa:0 }
   },
   {
     id:"circular", nombre:"Salón Circular",
@@ -397,6 +402,7 @@ const ESPACIOS = [
     infra:["Dato pendiente de validación"],
     desc:"Ficha técnica pendiente de confirmación.",
     tar:{ media:750, completa:1200 },
+    apertura:{ media:375.0, completa:600.0 },
     pendiente:true
   },
   {
@@ -404,14 +410,16 @@ const ESPACIOS = [
     sup:"A completar", cap:"150 personas (auditorio) / 80 (escuela) / 120 (mesas redondas)", ubicacion:"Subsuelo, Edificio Institucional (Corrientes 796)", max:150,
     infra:["Climatización integral, frío/calor centralizada","Sistema de detección y extinción de incendios"],
     desc:"Salón versátil para eventos gastronómicos, presentaciones y reuniones de mediano formato.",
-    tar:{ media:1450, completa:2000 }
+    tar:{ media:1450, completa:2000 },
+    apertura:{ media:779.74, completa:1105.92 }
   },
   {
     id:"capacitacion", nombre:"Sala 1 de Capacitación",
     sup:"A completar", cap:"50 bancos de trabajo", ubicacion:"Primer piso, Edificio Institucional (Córdoba 1402)", max:50,
     infra:["Pantalla touch screen de 85\"","Sistema de videoconferencia para reuniones híbridas","Sonido integral","Climatización integral frío/calor","Sistema de detección y extinción de incendios"],
     desc:"Sala de capacitación equipada con pantalla táctil interactiva de 85\". Diseñada para talleres, cursos y capacitaciones con configuración en bancos.",
-    tar:{ media:550, completa:900 }
+    tar:{ media:550, completa:900 },
+    apertura:{ media:300.0, completa:500.0 }
   },
   {
     id:"estudio", nombre:"Estudio Audiovisual +BCR",
@@ -421,7 +429,8 @@ const ESPACIOS = [
            "Micrófonos de estudio tipo broadcast con conexiones balanceadas","Sistema de luces LED de estudio, suspendidas y direccionables",
            "Operación técnica, realización y edición exclusivamente a través del proveedor audiovisual de la BCR"],
     desc:"Estudio audiovisual diseñado para la realización de contenidos institucionales, entrevistas, transmisiones en vivo y producciones audiovisuales de calidad profesional.",
-    tar:{ media:550, completa:1000 }
+    tar:{ media:550, completa:1000 },
+    apertura:{ media:163.14, completa:253.39 }
   },
   {
     id:"recinto", nombre:"Recinto de Operaciones",
@@ -429,6 +438,7 @@ const ESPACIOS = [
     infra:["Características técnicas en proceso de actualización"],
     desc:"Espacio incorporado al tarifario 2026. Ficha técnica y características pendientes de definición final.",
     tar:{ media:1500, completa:2200 },
+    apertura:{ media:784.08, completa:1125.11 },
     pendiente:true
   },
 ];
@@ -489,7 +499,7 @@ function esAsociado() { return document.getElementById("tipo_cliente").value ===
 
 // ─── LÍNEAS DE COTIZACIÓN ──────────────────────────────────────────────────────
 function agregarLinea() {
-  lineas.push({ uid: uidCounter++, espacioId: ESPACIOS[0].id, diasCompleta: 1, diasMedia: 0, alternativa: false });
+  lineas.push({ uid: uidCounter++, espacioId: ESPACIOS[0].id, diasCompleta: 1, diasMedia: 0, alternativa: false, tarifa: "comercial" });
   renderLineas();
   recalcular();
 }
@@ -505,22 +515,36 @@ function actualizarLinea(uid, campo, valor) {
   if (!l) return;
   if (campo === "espacioId") l.espacioId = valor;
   else if (campo === "alternativa") l.alternativa = valor;
+  else if (campo === "tarifa") l.tarifa = valor;
   else l[campo] = Math.max(0, parseInt(valor) || 0);
   renderLineas();
   recalcular();
 }
 
-function precioLinea(l) {
+function tarifaDeLinea(l) {
   const e = ESPACIOS.find(x => x.id === l.espacioId);
-  if (!e) return 0;
-  return e.tar.completa * l.diasCompleta + e.tar.media * l.diasMedia;
+  if (!e) return null;
+  return l.tarifa === "apertura" ? e.apertura : e.tar;
+}
+
+function precioLinea(l) {
+  const t = tarifaDeLinea(l);
+  if (!t) return 0;
+  return t.completa * l.diasCompleta + t.media * l.diasMedia;
+}
+
+// Valor de media jornada de una línea según su tarifa (para la jornada de armado)
+function mediaDeLinea(l) {
+  const t = tarifaDeLinea(l);
+  return t ? t.media : 0;
 }
 
 function jornadaLabelLinea(l) {
   const partes = [];
   if (l.diasCompleta > 0) partes.push(`${l.diasCompleta} ${l.diasCompleta===1?"día":"días"} de jornada completa`);
   if (l.diasMedia > 0) partes.push(`${l.diasMedia} ${l.diasMedia===1?"día":"días"} de media jornada`);
-  return partes.length ? partes.join(" + ") : "Sin días asignados";
+  const base = partes.length ? partes.join(" + ") : "Sin días asignados";
+  return l.tarifa === "apertura" ? base + " (a costo apertura)" : base;
 }
 
 function renderLineas() {
@@ -548,12 +572,21 @@ function renderLineas() {
         <div class="field"><label>Días jornada completa</label><input type="number" min="0" value="${l.diasCompleta}" onchange="actualizarLinea(${l.uid}, 'diasCompleta', this.value)"></div>
         <div class="field"><label>Días media jornada</label><input type="number" min="0" value="${l.diasMedia}" onchange="actualizarLinea(${l.uid}, 'diasMedia', this.value)"></div>
       </div>
+      <div class="field-grid spacer">
+        <div class="field"><label>Tarifa</label>
+          <select onchange="actualizarLinea(${l.uid}, 'tarifa', this.value)">
+            <option value="comercial" ${l.tarifa!=="apertura"?"selected":""}>Tarifa comercial</option>
+            <option value="apertura" ${l.tarifa==="apertura"?"selected":""}>Costo apertura</option>
+          </select>
+        </div>
+      </div>
       <label class="linea-alt-toggle">
         <input type="checkbox" ${l.alternativa?"checked":""} onchange="actualizarLinea(${l.uid}, 'alternativa', this.checked)">
         Es una opción a elección del cliente (no sumar al total — se muestra aparte)
       </label>
       ${superado ? `<div class="linea-warn">⚠ Los asistentes (${asistentes}) superan la capacidad de este espacio (máx. ${e.max})</div>` : ""}
       ${e && e.pendiente ? `<div class="linea-warn">⚠ Ficha técnica pendiente de validación</div>` : ""}
+      ${e && l.tarifa==="apertura" && e.apertura.media===0 && e.apertura.completa===0 ? `<div class="linea-warn">⚠ Este espacio tiene costo apertura de USD 0 en el tarifario</div>` : ""}
       <div class="linea-price">${jornadaLabelLinea(l)} — USD ${precio.toLocaleString("es-AR")}</div>
     `;
     cont.appendChild(div);
@@ -576,11 +609,12 @@ function calcItemsConfirmados() {
 
   // Armado: una sola vez (un día previo), al valor de media jornada del espacio confirmado de mayor tarifa
   if (conArmado && confirmadas.length > 0) {
-    const maxEsp = confirmadas
-      .map(l => ESPACIOS.find(x => x.id === l.espacioId))
-      .filter(Boolean)
-      .reduce((a,b) => b.tar.media > a.tar.media ? b : a);
-    items.push({ label:`Jornada de armado (ref. ${maxEsp.nombre})`, val: maxEsp.tar.media });
+    // Se toma la línea de mayor valor de media jornada, respetando su tarifa (comercial o costo apertura)
+    const maxLinea = confirmadas
+      .filter(l => ESPACIOS.find(x => x.id === l.espacioId))
+      .reduce((a,b) => mediaDeLinea(b) > mediaDeLinea(a) ? b : a);
+    const maxEsp = ESPACIOS.find(x => x.id === maxLinea.espacioId);
+    items.push({ label:`Jornada de armado (ref. ${maxEsp.nombre}${maxLinea.tarifa==="apertura" ? ", a costo apertura" : ""})`, val: mediaDeLinea(maxLinea) });
   }
 
   const adic = parseFloat(document.getElementById("adicionales")?.value) || 0;
@@ -774,8 +808,9 @@ function copiarTexto() {
 }
 // ─── REGISTRO AUTOMÁTICO EN PLANILLA DE SEGUIMIENTO (Google Sheets) ───────────
 // Pegar acá la URL del Web App que se obtiene al publicar el Apps Script
-// (ver guía de configuración). Mientras diga "   const SHEET_WEBAPP_URL =https://script.google.com/macros/s/AKfycbxjkL_ZCwV36LOtiKS30madKR5jA3XCSa4VftWh_JFdUzwaGqClK_B_CjzLQIeNkeBeUA/exec
-const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwOwLx_z8xRiaPy7syKXFRey9VjNMo6CgFMlZtL63kc5gg1XHnLoNE8paz0AohwCjLb/exec";
+// (ver guía de configuración). Mientras diga "PEGAR_AQUI...", el registro
+// automático queda deshabilitado y el cotizador sigue funcionando igual.
+const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxjkL_ZCwV36LOtiKS30madKR5jA3XCSa4VftWh_JFdUzwaGqClK_B_CjzLQIeNkeBeUA/exec";
 
 function construirDatosPlanilla() {
   const confirmadas = lineas.filter(l => !l.alternativa);
@@ -797,7 +832,7 @@ function construirDatosPlanilla() {
   const totalGeneral = calcItemsConfirmados().reduce((a,i) => a+i.val, 0);
   const valorCotizado = confirmadas.map(l => {
     const e = ESPACIOS.find(x => x.id === l.espacioId);
-    return e ? `${e.nombre}: USD ${fmt(precioLinea(l))}` : null;
+    return e ? `${e.nombre}${l.tarifa==="apertura" ? " (costo apertura)" : ""}: USD ${fmt(precioLinea(l))}` : null;
   }).filter(Boolean).join(" / ") + ` (Total: USD ${fmt(totalGeneral)})`;
 
   const anio = fechaIni ? new Date(fechaIni + "T00:00:00").getFullYear() : new Date().getFullYear();
@@ -834,7 +869,10 @@ function registrarEnPlanilla() {
       if (res.ok) showToast("✓ Cotización registrada en la planilla de seguimiento");
       else showToast("⚠ El Word se generó, pero no se pudo registrar en la planilla");
     })
-    .catch(() => showToast("⚠ El Word se generó, pero no se pudo conectar con la planilla"));
+    .catch((err) => {
+      console.error("Error al registrar en la planilla:", err);
+      showToast("⚠ El Word se generó, pero no se pudo conectar con la planilla");
+    });
 }
 
 // ─── GENERAR WORD (client-side, sin backend) ──────────────────────────────────
@@ -873,7 +911,7 @@ function constructDatosPlantilla() {
   const items      = calcItemsConfirmados();
   const totalEspacios = confirmadas.reduce((acc,l) => acc + precioLinea(l), 0);
   const armadoCost = conArmado && confirmadas.length
-    ? Math.max(...confirmadas.map(l => ESPACIOS.find(x=>x.id===l.espacioId)?.tar.media || 0))
+    ? Math.max(...confirmadas.map(l => mediaDeLinea(l)))
     : 0;
   const adicManual = parseFloat(document.getElementById("adicionales")?.value) || 0;
   const costoAdicionales = armadoCost + adicManual;
@@ -985,10 +1023,22 @@ function generarWord() {
     }
   });
 }
+let toastQueue = [];
+let toastShowing = false;
 function showToast(msg) {
+  toastQueue.push(msg);
+  procesarColaToast();
+}
+function procesarColaToast() {
+  if (toastShowing || toastQueue.length === 0) return;
+  toastShowing = true;
   const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2800);
+  t.textContent = toastQueue.shift();
+  t.classList.add("show");
+  setTimeout(() => {
+    t.classList.remove("show");
+    setTimeout(() => { toastShowing = false; procesarColaToast(); }, 350);
+  }, 2800);
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
